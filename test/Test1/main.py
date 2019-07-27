@@ -10,7 +10,7 @@ tasks = [
 def dealTask(task, index=0):
     startTime = time()
     while time()-startTime < STOPTIME:
-        (f, *arg) = task[index]
+        f, *arg = task[index]
         print(f, *arg)
         f(*arg)
         print('~~~~~~StepEnd~~~~~~')

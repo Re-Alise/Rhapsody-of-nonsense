@@ -1,33 +1,34 @@
+#encoding=UTF-8
 from threading import Thread
 from queue import Queue
 from time import sleep, time
 import RPi.GPIO as GPIO
-# 可能serial接ard
 class Driver(Thread):
     def __init__(self, data):
         Thread.__init__(self)
         # RPi.GPIO.setmode(GPIO.BCM)
+        ms2dutyCycle = 5
         self.data = data
         self.now = 0
-        self.daemon = 1
         self.timeout = 0.2
         self.pinName = ('t', 'y', 'p', 'r', 's')
         self.pins = dict(zip(self.pinName, (29, 31, 33, 35, 37)))
         print(list(self.pins.values()))
-        self.offset = dict(zip(self.pinName, (7.5, 7.5, 7.5, 7.5, 7.5)))
+        self.offset = dict(zip(self.pinName, (15, 15, 15, 15, 15)))
         self.d = self.offset
-        self.cent = 0.025
+        self.cent = 0.05
+        # self.cent = 0.5*ms2dutyCycle/100
         self.init()
     
     def init(self):
         GPIO.cleanup()
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(list(self.pins.values()), GPIO.OUT)
-        self.throttle = GPIO.PWM(self.pins['t'], 50)
-        self.yaw = GPIO.PWM(self.pins['y'], 50)
-        self.pitch = GPIO.PWM(self.pins['p'], 50)
-        self.row = GPIO.PWM(self.pins['r'], 50)
-        self.servo = GPIO.PWM(self.pins['s'], 50)
+        self.throttle = GPIO.PWM(self.pins['t'], 100)
+        self.yaw = GPIO.PWM(self.pins['y'], 100)
+        self.pitch = GPIO.PWM(self.pins['p'], 100)
+        self.row = GPIO.PWM(self.pins['r'], 100)
+        self.servo = GPIO.PWM(self.pins['s'], 100)
         self.throttle.start(0)
         self.yaw.start(0)
         self.pitch.start(0)
@@ -73,11 +74,11 @@ class Driver(Thread):
 if __name__ == '__main__':
     q = Queue()
     driver = Driver(q)
+    driver.daemon = 1
     driver.start()
-    q.put(('t', 100))
-    q.put(('y', 75))
-    q.put(('p', 50))
-    q.put(('r', 25))
-    q.put(('s', -100))
-    input('~~~~~~~~~~~~~~~~~~~~~~~~~')
-
+    q.put(('t', 0))
+    q.put(('y', 0))
+    q.put(('p', 0))
+    q.put(('r', 0))
+    q.put(('s', 0))
+    input('')
