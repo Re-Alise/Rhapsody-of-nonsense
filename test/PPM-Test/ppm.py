@@ -15,7 +15,7 @@ class PPM:
 
     Source: https://www.raspberrypi.org/forums/viewtopic.php?t=219531
     """
-    GAP = 100
+    GAP = 400
     WAVES = 3
 
     def __init__(self, pi, gpio, channels=8, frame_ms=20):
@@ -58,7 +58,9 @@ class PPM:
             wf.append(pigpio.pulse(1 << self.gpio, 0, i))
             micros += (i+self.GAP)
         # off for the remaining frame period
-        wf.append(pigpio.pulse(0, 1 << self.gpio, self._frame_us-micros))
+        wf.append(pigpio.pulse(0, 1 << self.gpio, self.GAP))
+        micros += self.GAP
+        wf.append(pigpio.pulse(1 << self.gpio, 0, self._frame_us-micros))
 
         self.pi.wave_add_generic(wf)
         wid = self.pi.wave_create()
@@ -106,19 +108,22 @@ if __name__ == "__main__":
 
     ppm = PPM(pi, 6, frame_ms=20)
 
-    updates = 0
-    start = time.time()
-    for chan in range(8):
-        for pw in range(1000, 2000, 5):
-            ppm.update_channel(chan, pw)
-            updates += 1
-    end = time.time()
-    secs = end - start
-    print("{} updates in {:.1f} seconds ({}/s)".format(updates, secs, int(updates/secs)))
+    # updates = 0
+    # start = time.time()
+    # for chan in range(8):
+    #     for pw in range(1000, 2000, 5):
+    #         ppm.update_channel(chan, pw)
+    #         updates += 1
+    # end = time.time()
+    # secs = end - start
+    # print("{} updates in {:.1f} seconds ({}/s)".format(updates, secs, int(updates/secs)))
 
     ppm.update_channels([1000, 2000, 1000, 2000, 1000, 2000, 1000, 2000])
+    pi.write(26, 1)
+    print("read 19,",pi.read(19))
 
-    time.sleep(2)
+    # time.sleep(2)
+    input()
 
     ppm.cancel()
 
