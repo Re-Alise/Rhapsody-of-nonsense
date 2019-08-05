@@ -1,26 +1,23 @@
-from fun import *
+from functions import *
 from time import time
-
+debug = 1
 STOPTIME = 60*5
 
-tasks = [
-
+test = [
+    (printTest, 123, {}),
 ]
-
-def dealTask(task, index=0):
-    startTime = time()
-    while time()-startTime < STOPTIME:
-        f, *arg = task[index]
-        print(f, *arg)
-        f(*arg)
-        print('~~~~~~StepEnd~~~~~~')
-        index += 1
-        if not index < len(task):
-            break
-    print('task finish')
 
 if __name__ == '__main__':
     # open threads to contral plane
 
     # deside action from mission list
-    dealTask(tasks)
+    mission = test
+    for task in mission:
+        f, *arg, kwargs = task
+        if debug:
+            print('#', f.__name__, 'start')
+        f(*arg, **kwargs)
+        if debug:
+            print('#', f.__name__, 'finish')
+
+    
