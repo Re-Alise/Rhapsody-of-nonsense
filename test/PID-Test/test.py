@@ -4,10 +4,11 @@ from time import sleep
 import time
 
 class PID(Thread):
-    def __init__(self, input_queue:Queue, kp=1, ki=0, kd=0, sample_time=0.01):
+    def __init__(self, input_queue:Queue, output_queue:Queue, kp=1, ki=0, kd=0, sample_time=0.01):
         Thread.__init__(self)
         self.daemon = 1
         self._input_queue = input_queue
+        self._output_queue = output_queue
         self.set_point = 0
         self.Kp = kp
         self.Ki = ki
@@ -20,6 +21,7 @@ class PID(Thread):
         self.min = 0
         self.max = 100
         self.ITerm = 0
+        self.start()
     
     def run(self):
         while 1:
