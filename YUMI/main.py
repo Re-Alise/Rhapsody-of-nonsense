@@ -3,6 +3,7 @@ from time import time, sleep
 from threading import Thread
 from queue import Queue
 from ins import get_only
+import numpy as np
 import cv2
 
 # cv2 const
@@ -13,12 +14,22 @@ LINE_THRESHOLD = (96, 96, 96)
 BLUR_PIXEL = (5, 5)
 CONTOUR_COLOR = (0, 255, 64) #BGR
 CENTROID_COLOR = (0, 0, 255)  # BGR
-mask1 = cv2.imread('mask1.jpg', cv2.IMREAD_GRAYSCALE)
-_, MASK_ = cv2.threshold(mask1, 90, 255, cv2.THRESH_BINARY)
-mask2 = cv2.imread('mask2.jpg', cv2.IMREAD_GRAYSCALE)
-_, MASK_DIRECT = cv2.threshold(mask2, 90, 255, cv2.THRESH_BINARY)
-mask3 = cv2.imread('mask3.jpg', cv2.IMREAD_GRAYSCALE)
-_, MASK_POS = cv2.threshold(mask3, 90, 255, cv2.THRESH_BINARY)
+
+MASK_ALL = np.zeros([240, 320],dtype=np.uint8)
+MASK_ALL[0:240, 0:320] = 255
+
+MASK_FORWARD = np.zeros([240, 320],dtype=np.uint8)
+MASK_FORWARD[10:90, 10:310] = 255
+
+MASK_TOP = np.zeros([240, 320],dtype=np.uint8)
+MASK_TOP[0:120, 0:320] = 255
+
+MASK_BUTTON = np.zeros([240, 320],dtype=np.uint8)
+MASK_BUTTON[121:240, 0:320] = 255
+
+MASK_LINE_MIDDLE = np.zeros([240, 320],dtype=np.uint8)
+MASK_LINE_MIDDLE[101:140, 81:240] = 255
+
 """
 標準流程
 較正時脈
@@ -38,6 +49,8 @@ ARM
 穩定
 降落
 DISARM
+------------------------------------------
+核心: 循線、繞色塊、穩色塊
 """
 # maybe also be a pid-controller
 class Controller(Thread):
@@ -77,7 +90,27 @@ class Controller(Thread):
             signals = self._input_queue.get()
             # self._ppm.update_assign(signals)
 
-        
+class Sonic(Thread):
+    def __init__(self, trigger_pin, echo_pin):
+        Thread.__init__(self)
+        # self._pi = get_only(pigpio.pi)
+        self.trigger = trigger_pin
+        self.echo = echo_pin
+        self.daemon = 1
+        self.value = 0
+
+    def run(self):
+        # self._pi.write(self.trigger, 1)
+        # sleep(0.00001)
+        # self._pi.write(self.trigger, 0)
+        # while self._pi.read(self.echo) == 0:
+        #     pass
+        # startTime = time()
+        # while self._pi.read(self.echo) == 1:
+        #     pass
+        # passTime = time()-startTime
+        # self.value = passTime*17150
+        pass
 
 class Plane():
     """main program
@@ -86,6 +119,8 @@ class Plane():
         # just one buffer because we just need the last value
         self.output_queue = Queue(1)
         self.cap = cv2.VideoCapture(0)
+        self.sonic = get_only(Sonic, 37, 35)
+        # self._pi = get_only(pigpio.pi)
         Controller(self.output_queue, 6)
 
         # 校正時脈
@@ -98,7 +133,7 @@ class Plane():
         sleep(0.1)
         self.output([(2, 1100), (3, 1900)]) # set throttle to lowest, yaw to right
         sleep(2)
-        self.output([(3, 1500)])
+        self.output([(3, 1500), ()])
 
     def predealt(self):
         """幫邊緣做偏移
@@ -107,7 +142,13 @@ class Plane():
     def take_off(self):
         """依靠超音波 去起飛
         """
-        pass
+        self.output([(0, 1500), (1, 1500), (2, 1620), (3, 1500)])
+        while 1:
+            self.sonic.start()
+            self.sonic.join()
+            if self.sonic.value>100:
+                break
+        self.output([(2, 1500)])
 
     def throttle_test(self):
         self.output([(2, 1500)])
@@ -115,9 +156,13 @@ class Plane():
         self.output([(2, 1100)])
 
     def land(self):
-        """大概就是降落?
-        """
-        pass
+        self.output([(0, 1500), (1, 1500), (2, 1410), (3, 1500),])
+        while 1:
+            self.sonic.start()
+            self.sonic.join()
+            if self.sonic.value<5:
+                self.output([(2, 1100), ()])
+                break
 
     def disarm(self):
         self.output([(2, 1100), (3, 1100)]) # set throttle to lowest, yaw to lift
@@ -125,26 +170,30 @@ class Plane():
         self.output([(3, 1500)])
 
     def auto(self, frame, fun=0):
-        if fun == 0:
-            self._stabilize(frame)
-        elif fun == 1:
-            self._along(frame)
+        pass
+        # the main
 
     def _stabilize(self, frame):
-        xx, yy = self._find_center_error(frame, MASK_POS)
-        self.output([(0, 1500+10*(160-xx)), (1, 1500+10*(120-yy))])# maybe
+        pass
+        # xx, yy = self._find_center_error(frame, MASK_POS)
+        # self.output([(0, 1500+10*(160-xx)), (1, 1500+10*(120-yy))])# maybe
 
     def _along(self, frame):
-        xx, _ = self._find_center_error(frame, MASK_POS)
-        self.output([(3, 160-xx), (1, 1600)])# maybe
+        pass
+        # xx, _ = self._find_center_error(frame, MASK_POS)
+        # self.output([(3, 160-xx), (1, 1600)])# maybe
 
-    def _find_center_error(self, frame, mask):
+    def _around(self, frame):
+        pass
+
+    def _detect(self, frame)
+
+    def _find_center(self, frame, mask):
         frame = cv2.bitwise_and(frame, frame, mask=mask)
         contours, _ = cv2.findContours(frame,1,2)
         sumX=0
         sumY=0
         sumW=0
-        
         for cnt in contours:
             M=cv2.moments(cnt)
             sumX += M['m10']
@@ -155,11 +204,11 @@ class Plane():
             # M['m01'] yMoment
         # 全畫面的黑色的中心座標
         if sumW == 0:
-            print('No moments OwO')
-            return frame, -1, -1
+            print('Not found')
+            return -1, -1, 0
         cX = int(sumX/sumW)
         cY = int(sumY/sumW)
-        return cX, cY
+        return cX, cY, sumW
 
     def output(self, *arg, **kws):
         while self.output_queue.full():
@@ -169,7 +218,7 @@ class Plane():
 if __name__ == '__main__':
     plane = Plane()
     plane.arm()
-    plane.throttle_test()
+    # plane.throttle_test()
+    plane.take_off()
+    plane.land()
     plane.disarm()
-    print(globals())
-    pass
