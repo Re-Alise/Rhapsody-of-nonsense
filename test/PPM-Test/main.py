@@ -40,18 +40,15 @@ class PPMController(Thread):
 
     def run(self):
         while 1:
-            if not self._input_queue.empty():
-                signals = self._input_queue.get()
-                if not isinstance(signals, list):
-                    continue
+            signals = self._input_queue.get()
+            if not isinstance(signals, list):
+                continue
 
-                if len(signals) != self._channels:
-                    # input length and number of channels not matched
-                    continue
-                
-                self._ppm.update_channels(signals)
-            else:
-                sleep(0.01)
+            if len(signals) != self._channels:
+                # input length and number of channels not matched
+                continue
+            
+            self._ppm.update_channels(signals)
 
 
 def arm(q:Queue, signal:list):
