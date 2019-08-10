@@ -8,8 +8,7 @@ BLUR_PIXEL = (5, 5)
 COLOR_SEARCH_LIMIT = 100000
 HUE_RED = [0, 3]  # 0
 HUE_GREEN = [10, 11]  # 11.66
-# HUE_BLUE = [19, 20, 21, 22, 24]  # 21.33
-HUE_BLUE = range(12, 25)
+HUE_BLUE = [20, 21]  # 21.33
 
 
 def threshold_by_colors(im, colors: list, debug=False):
@@ -19,7 +18,7 @@ def threshold_by_colors(im, colors: list, debug=False):
     colors -- colors ('r', 'g', 'b', 'k') use to do thresholding
     '''
     blurred = cv2.GaussianBlur(im, BLUR_PIXEL, 0)
-    im_hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+    im_hsv = cv2.cvtColor(blurred, cv2.COLOR_RGB2HSV)
     # convert to 5 bit color, which has 32 levels (0-31) each value
     im_hsv //= 8
 
