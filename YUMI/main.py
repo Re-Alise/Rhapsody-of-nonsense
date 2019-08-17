@@ -3,6 +3,8 @@ from ppm import PPM
 from threading import Thread
 from queue import Queue
 from ins import get_only
+from enum import IntEnum
+
 import numpy as np
 import cv2
 import pigpio
@@ -113,9 +115,18 @@ class Sonic():
             if 0.0001 < passTime < 0.025:
                 self.value = passTime*17150
 
+class DroneControl(IntEnum):
+        PITCH = 0
+        ROLL = 1
+        THROTTLE = 2
+        YAW = 3
+        MODE = 5
+        AUTO = 6
+
 class Plane():
     """main program
     """
+
     def __init__(self):
         # just one buffer because we just need the last value
         self.output_queue = Queue(1)
@@ -130,9 +141,9 @@ class Plane():
 
     def arm(self):
         sleep(0.1)
-        self.output([(2, -50), (3, 50)]) # set throttle to lowest, yaw to right
+        self.output([(DroneControl.THROTTLE, -50), (DroneControl.YAW, 50)]) # set throttle to lowest, yaw to right
         sleep(2)
-        self.output([(3, 0)])
+        self.output([(DroneControl.THROTTLE, 0)])
 
     def predealt(self):
         """幫邊緣做偏移
@@ -141,28 +152,30 @@ class Plane():
     def take_off(self):
         """依靠超音波 去起飛
         """
-        self.output([(0, 0), (1, 0), (2, 5), (3, 0)])
+        self.output([(DroneControl.PITCH, 0), (DroneControl.ROLL, 0), (DroneControl.THROTTLE, 5), (DroneControl.YAW, 0)])
         while 1:
             if self.sonic.value>100:
                 break
-        self.output([(2, 0)])
+        self.output([(DroneControl.THROTTLE, 0)])
 
     def throttle_test(self):
-        self.output([(2, 0)])
+        self.output([(DroneControl.THROTTLE, 0)])
         sleep(0.1)
-        self.output([(2, -50)])
+        self.output([(DroneControl.THROTTLE, -50)])
 
     def land(self):
-        self.output([(0, 0), (1, 0), (2, -5), (3, 0),])
+        self.output([(DroneControl.PITCH, 0), (DroneControl.ROLL, 0), (DroneControl.THROTTLE, -5), (DroneControl.YAW, 0),])
         while 1:
-            if self.sonic.value<8:
-                self.output([(2, -50),])
+            self.sonic.start()
+            self.sonic.join()
+            if self.sonic.value<5:
+                self.output([(DroneControl.THROTTLE, -50),])
                 break
 
     def disarm(self):
-        self.output([(2, -50), (3, -50)]) # set throttle to lowest, yaw to lift
+        self.output([(DroneControl.THROTTLE, -50), (DroneControl.YAW, -50)]) # set throttle to lowest, yaw to lift
         sleep(5)
-        self.output([(3, 0)])
+        self.output([(DroneControl.YAW, 0)])
 
     def auto(self):
         n = self._pi.read(6)
