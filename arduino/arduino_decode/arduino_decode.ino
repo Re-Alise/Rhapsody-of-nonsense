@@ -8,7 +8,8 @@
 #define controllerIn 14
 #define piIn 16
 #define select 2
-#define LED 17           
+#define LED 17   
+#define start A0        
 
 unsigned long duration;
 unsigned long gap;
@@ -19,10 +20,11 @@ void setup() {
   pinMode(piIn, INPUT_PULLUP);
   pinMode(select, OUTPUT);
   pinMode(LED, OUTPUT);
-  //Serial.begin(19200);
-  //Serial.println("siu");
+  pinMode(start, OUTPUT);
+//  Serial.begin(19200);
+//  Serial.println("siu");
   gap = pulseIn(controllerIn, LOW);
-  //Serial.println(gap);
+//  Serial.println(gap);
   delay(1000);
 }
 
@@ -35,28 +37,30 @@ void loop() {
   }
   if (index>=8){
     index = 0;
-    //Serial.print(buffer[0]);
-    //Serial.print(",\t");
-    //Serial.print(buffer[1]);
-    //Serial.print(",\t");
-    //Serial.print(buffer[2]);
-    //Serial.print(",\t");
-    //Serial.print(buffer[3]);
-    //Serial.print(",\t");
-    //Serial.print(buffer[4]);
-    //Serial.print(",\t");
-    //Serial.print(buffer[5]);
-    //Serial.print(",\t");
-    //Serial.print(buffer[6]);
-    //Serial.print(",\t");
-    //Serial.print(buffer[7]);
-    //Serial.println(",\t");
+//    Serial.print(buffer[0]);
+//    Serial.print(",\t");
+//    Serial.print(buffer[1]);
+//    Serial.print(",\t");
+//    Serial.print(buffer[2]);
+//    Serial.print(",\t");
+//    Serial.print(buffer[3]);
+//    Serial.print(",\t");
+//    Serial.print(buffer[4]);
+//    Serial.print(",\t");
+//    Serial.print(buffer[5]);
+//    Serial.print(",\t");
+//    Serial.print(buffer[6]);
+//    Serial.print(",\t");
+//    Serial.print(buffer[7]);
+//    Serial.println(",\t");
     if (buffer[5]>1500){
       digitalWrite(select, 1);
       digitalWrite(LED, 1);
+      digitalWrite(start, 1);
     }else{
       digitalWrite(select, 0);
       digitalWrite(LED, 0);
+      digitalWrite(start, 0);
     }
   }
   // put your main code here, to run repeatedly:

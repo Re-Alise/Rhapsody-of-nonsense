@@ -136,9 +136,9 @@ class Plane():
 
     def arm(self):
         sleep(0.1)
-        self.output([(2, 1100), (3, 1900)]) # set throttle to lowest, yaw to right
+        self.output([(2, -400), (3, 400)]) # set throttle to lowest, yaw to right
         sleep(2)
-        self.output([(3, 1500), ()])
+        self.output([(3, 0)])
 
     def predealt(self):
         """幫邊緣做偏移
@@ -166,7 +166,7 @@ class Plane():
             self.sonic.start()
             self.sonic.join()
             if self.sonic.value<5:
-                self.output([(2, -400), ()])
+                self.output([(2, -400),])
                 break
 
     def disarm(self):
@@ -238,10 +238,28 @@ class Plane():
 
 if __name__ == '__main__':
     pp = pigpio.pi()
+    plane = Plane()
+    mode_auto = pp.read(6)
+    print('init finish-------------------------------')
     while 1:
-        print(pp.read(6))
+        start_signal = pp.read(6)
+        if start_signal and not mode_auto:
+            # auto run
+            print('autoMode')
+            mode_auto = 1
+            sleep(.1)
+            plane.arm()
+            sleep(.1)
+            plane.throttle_test()
+            sleep(.1)
+            plane.disarm()
+            print('mission completed')
+            pass
+        else:
+            if not start_signal:
+                mode_auto = 0
+        print(start_signal)
         sleep(.1)
-    # plane = Plane()
     # while 1:
     #     print(plane.auto())
             # plane.arm()
