@@ -83,7 +83,7 @@ class PPM:
             self._wid[self._next_wid] = None
     def update_assign(self, signals):
         for signal in signals:
-            self._widths[signal[0]] = signal[1]-self.GAP+1500
+            self._widths[signal[0]] = signal[1]＊8-self.GAP+1500
         self._update()
 
     def update_channel(self, channel, width):

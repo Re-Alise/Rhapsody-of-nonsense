@@ -51,6 +51,7 @@ class PPM:
         self._update_time = time.time()
 
     def _update(self):
+        # 建立waveform
         wf = []
         micros = 0
         for i in self._widths:
@@ -62,20 +63,25 @@ class PPM:
         micros += self.GAP
         wf.append(pigpio.pulse(1 << self.gpio, 0, self._frame_us-micros))
 
+        # 將建立好的wf送去重複執行
         self.pi.wave_add_generic(wf)
         wid = self.pi.wave_create()
+        # 送出（嘗試同步）
         self.pi.wave_send_using_mode(wid, pigpio.WAVE_MODE_REPEAT_SYNC)
         self._wid[self._next_wid] = wid
 
+        # 多個wave輪流使用
         self._next_wid += 1
         if self._next_wid >= self.WAVES:
             self._next_wid = 0
 
+        # 保證frame_us
         remaining = self._update_time + self._frame_secs - time.time()
         if remaining > 0:
             time.sleep(remaining)
         self._update_time = time.time()
 
+        # 意義不明,可能是保留前一筆資料以備不時之需
         wid = self._wid[self._next_wid]
         if wid is not None:
             self.pi.wave_delete(wid)

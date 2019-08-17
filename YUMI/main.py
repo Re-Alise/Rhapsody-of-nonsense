@@ -97,27 +97,21 @@ class Controller(Thread):
             signals = self._input_queue.get()
             self._ppm.update_assign(signals)
 
-class Sonic(Thread):
-    def __init__(self, trigger_pin, echo_pin):
-        Thread.__init__(self)
-        self._pi = get_only(pigpio.pi)
-        self.trigger = trigger_pin
-        self.echo = echo_pin
-        self.daemon = 1
+class Sonic():
+    def __init__(self, pi, trigger_pin=19, echo_pin=26):
+        self._pi = pi
+        self._pi.callback(echo_pin, pigpio.EITHER_EDGE, self.dealt)
         self.value = 0
+        self.time_rise = 0
 
-    def run(self):
-        self._pi.write(self.trigger, 1)
-        sleep(0.00001)
-        self._pi.write(self.trigger, 0)
-        while self._pi.read(self.echo) == 0:
+    def dealt(self, gpio, level, tick):
+        if level == 1: # rising
+            self.time_rise = time()
             pass
-        startTime = time()
-        while self._pi.read(self.echo) == 1:
-            pass
-        passTime = time()-startTime
-        self.value = passTime*17150
-        pass
+        elif level == 0: # falling
+            passTime = time()-self.time_rise
+            if 0.0001 < passTime < 0.025:
+                self.value = passTime*17150
 
 class Plane():
     """main program
@@ -126,9 +120,9 @@ class Plane():
         # just one buffer because we just need the last value
         self.output_queue = Queue(1)
         # self.cap = cv2.VideoCapture(0)
-        self.sonic = get_only(Sonic, 37, 35)
-        self.hight = 130
         self._pi = get_only(pigpio.pi)
+        self.sonic = Sonic(self._pi)
+        self.hight = 130
         Controller(self.output_queue, 13)
 
     def regulate(self):
@@ -136,7 +130,7 @@ class Plane():
 
     def arm(self):
         sleep(0.1)
-        self.output([(2, -400), (3, 400)]) # set throttle to lowest, yaw to right
+        self.output([(2, -50), (3, 50)]) # set throttle to lowest, yaw to right
         sleep(2)
         self.output([(3, 0)])
 
@@ -147,10 +141,8 @@ class Plane():
     def take_off(self):
         """依靠超音波 去起飛
         """
-        self.output([(0, 0), (1, 0), (2, 120), (3, 0)])
+        self.output([(0, 0), (1, 0), (2, 5), (3, 0)])
         while 1:
-            self.sonic.start()
-            self.sonic.join()
             if self.sonic.value>100:
                 break
         self.output([(2, 0)])
@@ -158,19 +150,17 @@ class Plane():
     def throttle_test(self):
         self.output([(2, 0)])
         sleep(0.1)
-        self.output([(2, -400)])
+        self.output([(2, -50)])
 
     def land(self):
-        self.output([(0, 0), (1, 0), (2, -120), (3, 0),])
+        self.output([(0, 0), (1, 0), (2, -5), (3, 0),])
         while 1:
-            self.sonic.start()
-            self.sonic.join()
-            if self.sonic.value<5:
-                self.output([(2, -400),])
+            if self.sonic.value<8:
+                self.output([(2, -50),])
                 break
 
     def disarm(self):
-        self.output([(2, -400), (3, -400)]) # set throttle to lowest, yaw to lift
+        self.output([(2, -50), (3, -50)]) # set throttle to lowest, yaw to lift
         sleep(5)
         self.output([(3, 0)])
 
