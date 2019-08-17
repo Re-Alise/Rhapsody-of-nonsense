@@ -1,10 +1,11 @@
 from time import time, sleep
-# from ppm import PPM
+from ppm import PPM
 from threading import Thread
 from queue import Queue
 from ins import get_only
 import numpy as np
 import cv2
+import pigpio
 
 # cv2 const
 ORIGINAL_IMAGE_SIZE = (640, 480)
@@ -29,6 +30,12 @@ MASK_BUTTON[121:240, 0:320] = 255
 
 MASK_LINE_MIDDLE = np.zeros([240, 320],dtype=np.uint8)
 MASK_LINE_MIDDLE[101:140, 81:240] = 255
+
+MASK_RIGHT = np.zeros([240, 320],dtype=np.uint8)
+MASK_RIGHT[106:320, 0:240] = 255
+
+speed = 1
+adjust = 1
 
 """
 標準流程
@@ -72,44 +79,44 @@ class Controller(Thread):
         self._input_queue = input_queue
         self._gpio = gpio
         self._channels = channels
-        # self._pi = get_only(pigpio.pi)
+        self._pi = get_only(pigpio.pi)
 
-        # if not self._pi.connected:
-        #     print('Error: pigpio is not initialized')
-        #     exit(0)
+        if not self._pi.connected:
+            print('Error: pigpio is not initialized')
+            exit(0)
 
-        # self._pi.wave_tx_stop()  # Start with a clean slate.
-        # self._ppm = PPM(self._pi, self._gpio, channels=channels, frame_ms=frame_ms)
+        self._pi.wave_tx_stop()  # Start with a clean slate.
+        self._ppm = PPM(self._pi, self._gpio, channels=channels, frame_ms=frame_ms)
         # Default output signal for stablizing
-        # self._ppm.update_channels([1500, 1500, 1100, 1500, 1500, 1500, 1500, 1500])
+        self._ppm.update_channels([1500, 1500, 1100, 1500, 1500, 1500, 1500, 1500])
         self.daemon = 1
         self.start()
 
     def run(self):
         while 1:
             signals = self._input_queue.get()
-            # self._ppm.update_assign(signals)
+            self._ppm.update_assign(signals)
 
 class Sonic(Thread):
     def __init__(self, trigger_pin, echo_pin):
         Thread.__init__(self)
-        # self._pi = get_only(pigpio.pi)
+        self._pi = get_only(pigpio.pi)
         self.trigger = trigger_pin
         self.echo = echo_pin
         self.daemon = 1
         self.value = 0
 
     def run(self):
-        # self._pi.write(self.trigger, 1)
-        # sleep(0.00001)
-        # self._pi.write(self.trigger, 0)
-        # while self._pi.read(self.echo) == 0:
-        #     pass
-        # startTime = time()
-        # while self._pi.read(self.echo) == 1:
-        #     pass
-        # passTime = time()-startTime
-        # self.value = passTime*17150
+        self._pi.write(self.trigger, 1)
+        sleep(0.00001)
+        self._pi.write(self.trigger, 0)
+        while self._pi.read(self.echo) == 0:
+            pass
+        startTime = time()
+        while self._pi.read(self.echo) == 1:
+            pass
+        passTime = time()-startTime
+        self.value = passTime*17150
         pass
 
 class Plane():
@@ -118,13 +125,11 @@ class Plane():
     def __init__(self):
         # just one buffer because we just need the last value
         self.output_queue = Queue(1)
-        self.cap = cv2.VideoCapture(0)
+        # self.cap = cv2.VideoCapture(0)
         self.sonic = get_only(Sonic, 37, 35)
-        # self._pi = get_only(pigpio.pi)
-        Controller(self.output_queue, 6)
-
-        # 校正時脈
-        self.regulate()
+        self.hight = 130
+        self._pi = get_only(pigpio.pi)
+        Controller(self.output_queue, 13)
 
     def regulate(self):
         pass
@@ -142,51 +147,67 @@ class Plane():
     def take_off(self):
         """依靠超音波 去起飛
         """
-        self.output([(0, 1500), (1, 1500), (2, 1620), (3, 1500)])
+        self.output([(0, 0), (1, 0), (2, 120), (3, 0)])
         while 1:
             self.sonic.start()
             self.sonic.join()
             if self.sonic.value>100:
                 break
-        self.output([(2, 1500)])
+        self.output([(2, 0)])
 
     def throttle_test(self):
-        self.output([(2, 1500)])
+        self.output([(2, 0)])
         sleep(0.1)
-        self.output([(2, 1100)])
+        self.output([(2, -400)])
 
     def land(self):
-        self.output([(0, 1500), (1, 1500), (2, 1410), (3, 1500),])
+        self.output([(0, 0), (1, 0), (2, -120), (3, 0),])
         while 1:
             self.sonic.start()
             self.sonic.join()
             if self.sonic.value<5:
-                self.output([(2, 1100), ()])
+                self.output([(2, -400), ()])
                 break
 
     def disarm(self):
-        self.output([(2, 1100), (3, 1100)]) # set throttle to lowest, yaw to lift
+        self.output([(2, -400), (3, -400)]) # set throttle to lowest, yaw to lift
         sleep(5)
-        self.output([(3, 1500)])
+        self.output([(3, 0)])
 
-    def auto(self, frame, fun=0):
+    def auto(self):
+        n = self._pi.read(6)
+        return n
+
+    def _stabilize(self, frame, color):
+        xx, yy, _ = self._find_center(frame, MASK_ALL)
+        pitch = 120-yy
+        row = xx-160
+        self.output([()])
+
+    def _along(self, frame, color):
+        xx, _, _ = self._find_center(frame, MASK_FORWARD)
+        yaw = xx-160
+        _, yy, _ = self._find_center(frame, MASK_LINE_MIDDLE)
+        row = 120-yy
         pass
-        # the main
 
-    def _stabilize(self, frame):
-        pass
-        # xx, yy = self._find_center_error(frame, MASK_POS)
-        # self.output([(0, 1500+10*(160-xx)), (1, 1500+10*(120-yy))])# maybe
-
-    def _along(self, frame):
-        pass
-        # xx, _ = self._find_center_error(frame, MASK_POS)
-        # self.output([(3, 160-xx), (1, 1600)])# maybe
-
-    def _around(self, frame):
+    def _around(self, frame, color):
+        _, yy, _ = self._find_center(frame, MASK_RIGHT)
+        row = 120-yy
+        _, _, w1 = self._find_center(frame, MASK_TOP)
+        _, _, w2 = self._find_center(frame, MASK_BUTTON)
+        yaw = w1-w2
         pass
 
-    def _detect(self, frame)
+    def _detect(self, frame):
+        _, _, ww = self._find_center(frame, MASK_ALL)
+        if ww > self.something:
+            return 1
+        else:
+            return 0
+
+    def _chech_hight(self):
+        pass
 
     def _find_center(self, frame, mask):
         frame = cv2.bitwise_and(frame, frame, mask=mask)
@@ -216,9 +237,15 @@ class Plane():
         self.output_queue.put(*arg, **kws)
 
 if __name__ == '__main__':
-    plane = Plane()
-    plane.arm()
-    # plane.throttle_test()
-    plane.take_off()
-    plane.land()
-    plane.disarm()
+    pp = pigpio.pi()
+    while 1:
+        print(pp.read(6))
+        sleep(.1)
+    # plane = Plane()
+    # while 1:
+    #     print(plane.auto())
+            # plane.arm()
+            # # # plane.throttle_test()
+            # # plane.take_off()
+            # # plane.land()
+            # plane.disarm()

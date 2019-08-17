@@ -19,6 +19,7 @@ class PPM:
     WAVES = 3
 
     def __init__(self, pi, gpio, channels=8, frame_ms=20):
+        self.adjust = 1
         self.pi = pi
         self.gpio = gpio
 
@@ -82,7 +83,7 @@ class PPM:
             self._wid[self._next_wid] = None
     def update_assign(self, signals):
         for signal in signals:
-            self._widths[signal[0]] = signal[1]-self.GAP
+            self._widths[signal[0]] = signal[1]-self.GAP+1500
         self._update()
 
     def update_channel(self, channel, width):
@@ -103,32 +104,30 @@ class PPM:
 
 
 if __name__ == "__main__":
-    pi = pigpio.pi()
+    # pi = pigpio.pi()
+    # pi.write(6, 1)
+    # input('>>>')
 
-    if not pi.connected:
-        exit(0)
+    # if not pi.connected:
+    #     exit(0)
 
-    pi.wave_tx_stop()  # Start with a clean slate.
+    # pi.wave_tx_stop()  # Start with a clean slate.
 
-    ppm = PPM(pi, 6, frame_ms=20)
+    # ppm = PPM(pi, 6, frame_ms=20)
 
-    # updates = 0
-    # start = time.time()
-    # for chan in range(8):
-    #     for pw in range(1000, 2000, 5):
-    #         ppm.update_channel(chan, pw)
-    #         updates += 1
-    # end = time.time()
-    # secs = end - start
-    # print("{} updates in {:.1f} seconds ({}/s)".format(updates, secs, int(updates/secs)))
+    # # updates = 0
+    # # start = time.time()
+    # # for chan in range(8):
+    # #     for pw in range(1000, 2000, 5):
+    # #         ppm.update_channel(chan, pw)
+    # #         updates += 1
+    # # end = time.time()
+    # # secs = end - start
+    # # print("{} updates in {:.1f} seconds ({}/s)".format(updates, secs, int(updates/secs)))
+    # # time.sleep(2)
+    # input()
 
-    ppm.update_channels([1000, 2000, 1000, 2000, 1000, 2000, 1000, 2000])
-    pi.write(26, 1)
-    print("read 19,",pi.read(19))
+    # ppm.cancel()
 
-    # time.sleep(2)
-    input()
-
-    ppm.cancel()
-
-    pi.stop()
+    # pi.stop()
+    pass

@@ -29,17 +29,13 @@
         -   下方
 
 MASKS 
--   forward 
--   top 
--   button 
--   all 
--   big cycle ?
--   back line 
--   middle line 
--   forward line 
--   v line 
--   right 
--   lift 
+-   MASK_RIGHT
+-   MASK_LINE_MIDDLE
+-   MASK_BUTTON
+-   MASK_TOP
+-   MASK_FORWARDs
+-   MASK_FORWARD
+-   MASK_ALL
 
 流程 
 -   起飛 
