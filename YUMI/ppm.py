@@ -18,10 +18,11 @@ class PPM:
     GAP = 400
     WAVES = 3
 
-    def __init__(self, pi, gpio, channels=8, frame_ms=20):
+    def __init__(self, pi, gpio, channels=8, frame_ms=20, gpio_sonic):
         self.adjust = 1
         self.pi = pi
         self.gpio = gpio
+        self.gpio_sonic = gpio_sonic
 
         if frame_ms < 5:
             frame_ms = 5
@@ -52,17 +53,20 @@ class PPM:
         self._update_time = time.time()
 
     def _update(self):
+        # 建立waveform
         wf = []
         micros = 0
         for i in self._widths:
             wf.append(pigpio.pulse(0, 1 << self.gpio, self.GAP))
             wf.append(pigpio.pulse(1 << self.gpio, 0, i))
             micros += (i+self.GAP)
-        # off for the remaining frame period
-        wf.append(pigpio.pulse(0, 1 << self.gpio, self.GAP))
+        wf.append(pigpio.pulse(0, 1 << self.gpio, self.GAP-15))
+        # 超音波trig也順便發出
+        wf.append(pigpio.pulse(1 << self.gpio_sonic, 0, 15))
         micros += self.GAP
-        wf.append(pigpio.pulse(1 << self.gpio, 0, self._frame_us-micros))
+        wf.append(pigpio.pulse(1 << self.gpio, 1 << self.gpio_sonic, self._frame_us-micros))
 
+        # 建立wf並傳送出去（嘗試同步）
         self.pi.wave_add_generic(wf)
         wid = self.pi.wave_create()
         self.pi.wave_send_using_mode(wid, pigpio.WAVE_MODE_REPEAT_SYNC)
@@ -72,6 +76,7 @@ class PPM:
         if self._next_wid >= self.WAVES:
             self._next_wid = 0
 
+        # 等發送完一次之後才能繼續
         remaining = self._update_time + self._frame_secs - time.time()
         if remaining > 0:
             time.sleep(remaining)
@@ -81,6 +86,7 @@ class PPM:
         if wid is not None:
             self.pi.wave_delete(wid)
             self._wid[self._next_wid] = None
+
     def update_assign(self, signals):
         for signal in signals:
             self._widths[signal[0]] = signal[1]＊8-self.GAP+1500

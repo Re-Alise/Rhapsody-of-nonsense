@@ -87,7 +87,6 @@ class Controller(Thread):
             print('Error: pigpio is not initialized')
             exit(0)
 
-        self._pi.wave_tx_stop()  # Start with a clean slate.
         self._ppm = PPM(self._pi, self._gpio, channels=channels, frame_ms=frame_ms)
         # Default output signal for stablizing
         self._ppm.update_channels([1500, 1500, 1100, 1500, 1500, 1500, 1500, 1500])
@@ -115,6 +114,22 @@ class Sonic():
             if 0.0001 < passTime < 0.025:
                 self.value = passTime*17150
 
+    def run(self):
+        while 1:
+            sleep(.033)
+            self._pi.write(19, 1)
+            sleep(.00001)
+            self._pi.write(19, 0)
+    
+    def tet(self, sec=10):
+        now = time()
+        times = 0
+        while time()-now < sec:
+            times+=1
+            sleep(.1):
+            print(self.value)
+        print(times)
+        
 class DroneControl(IntEnum):
         PITCH = 0
         ROLL = 1
@@ -132,6 +147,7 @@ class Plane():
         self.output_queue = Queue(1)
         # self.cap = cv2.VideoCapture(0)
         self._pi = get_only(pigpio.pi)
+        self._pi.wave_tx_stop()
         self.sonic = Sonic(self._pi)
         self.hight = 130
         Controller(self.output_queue, 13)
@@ -240,9 +256,13 @@ class Plane():
         self.output_queue.put(*arg, **kws)
 
 if __name__ == '__main__':
+    # ----------------------------------------------
     pp = pigpio.pi()
     plane = Plane()
     mode_auto = pp.read(6)
+    # test the sonic
+    plane.sonic.test()
+
     print('init finish-------------------------------')
     while 1:
         start_signal = pp.read(6)
@@ -263,10 +283,3 @@ if __name__ == '__main__':
                 mode_auto = 0
         print(start_signal)
         sleep(.1)
-    # while 1:
-    #     print(plane.auto())
-            # plane.arm()
-            # # # plane.throttle_test()
-            # # plane.take_off()
-            # # plane.land()
-            # plane.disarm()
