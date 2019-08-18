@@ -76,7 +76,7 @@ class Controller(Thread):
     Source: https://www.raspberrypi.org/forums/viewtopic.php?t=219531
     """
 
-    def __init__(self, input_queue, gpio, channels=8, frame_ms=20):
+    def __init__(self, input_queue, gpio, channels=8, frame_ms=20, gpio_sonic=19):
         Thread.__init__(self)
         self._input_queue = input_queue
         self._gpio = gpio
@@ -87,7 +87,7 @@ class Controller(Thread):
             print('Error: pigpio is not initialized')
             exit(0)
 
-        self._ppm = PPM(self._pi, self._gpio, channels=channels, frame_ms=frame_ms)
+        self._ppm = PPM(self._pi, self._gpio, channels=channels, frame_ms=frame_ms, gpio_sonic=gpio_sonic)
         # Default output signal for stablizing
         self._ppm.update_channels([1500, 1500, 1100, 1500, 1500, 1500, 1500, 1500])
         self.daemon = 1
@@ -149,7 +149,7 @@ class Plane():
         self._pi.wave_tx_stop()
         self.sonic = Sonic(self._pi)
         self.hight = 130
-        Controller(self.output_queue, 13)
+        Controller(self.output_queue, 13, gpio_sonic=19)
 
     def regulate(self):
         pass

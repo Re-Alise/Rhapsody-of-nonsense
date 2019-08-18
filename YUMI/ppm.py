@@ -18,7 +18,7 @@ class PPM:
     GAP = 400
     WAVES = 3
 
-    def __init__(self, pi, gpio, channels=8, frame_ms=20, gpio_sonic):
+    def __init__(self, pi, gpio, channels=8, frame_ms=20, gpio_sonic=19):
         self.adjust = 1
         self.pi = pi
         self.gpio = gpio
