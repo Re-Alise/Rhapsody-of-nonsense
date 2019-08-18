@@ -108,7 +108,6 @@ class Sonic():
     def dealt(self, gpio, level, tick):
         if level == 1: # rising
             self.time_rise = time()
-            pass
         elif level == 0: # falling
             passTime = time()-self.time_rise
             if 0.0001 < passTime < 0.025:
