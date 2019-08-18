@@ -18,7 +18,7 @@ class PPM:
     GAP = 400
     WAVES = 3
 
-    def __init__(self, pi, gpio, channels=8, frame_ms=20, gpio_sonic):
+    def __init__(self, pi, gpio, channels=8, frame_ms=20, gpio_sonic=19):
         self.adjust = 1
         self.pi = pi
         self.gpio = gpio
@@ -49,6 +49,7 @@ class PPM:
         self._next_wid = 0
 
         pi.write(gpio, pigpio.LOW)
+        pi.write(gpio_sonic, pigpio.LOW)
 
         self._update_time = time.time()
 
@@ -89,7 +90,7 @@ class PPM:
 
     def update_assign(self, signals):
         for signal in signals:
-            self._widths[signal[0]] = signal[1]＊8-self.GAP+1500
+            self._widths[signal[0]] = signal[1]*8-self.GAP+1500
         self._update()
 
     def update_channel(self, channel, width):

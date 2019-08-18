@@ -100,18 +100,32 @@ class Controller(Thread):
 
 class Sonic():
     def __init__(self, pi, trigger_pin=19, echo_pin=26):
+        print('sonic init')
         self._pi = pi
-        self._pi.callback(echo_pin, pigpio.EITHER_EDGE, self.dealt)
+        pi.callback(echo_pin, pigpio.EITHER_EDGE, self.dealt)
         self.value = 0
         self.time_rise = 0
+        self.values = [0, 0, 0, 0, 0]
+        self.index = 0
+        # wf = []
+        # wf.append(pigpio.pulse(1 << trigger_pin, 0, 10))
+        # wf.append(pigpio.pulse(0, 1 << trigger_pin, 40*1000-10))
+        # pi.wave_clear()
+
+        # pi.wave_add_generic(wf)
+        # wid = pi.wave_create()
+        # pi.wave_send_repeat(wid)
 
     def dealt(self, gpio, level, tick):
         if level == 1: # rising
-            self.time_rise = time()
+            self.time_rise = tick
+            # self.num1+=1
         elif level == 0: # falling
-            passTime = time()-self.time_rise
-            if 0.0001 < passTime < 0.025:
-                self.value = passTime*17150
+        # if self.num
+            passTime = tick-self.time_rise
+            if passTime < 25000:
+                self.value = passTime*.017150
+
 
     def run(self):
         while 1:
@@ -120,14 +134,15 @@ class Sonic():
             sleep(.00001)
             self._pi.write(19, 0)
     
-    def tet(self, sec=10):
+    def test(self, sec=10):
         now = time()
         times = 0
         while time()-now < sec:
             times+=1
-            sleep(.1):
-            print(self.value)
+            sleep(.1)
+            print('value:', self.value)
         print(times)
+        input('')
         
 class DroneControl(IntEnum):
         PITCH = 0
@@ -263,22 +278,22 @@ if __name__ == '__main__':
     plane.sonic.test()
 
     print('init finish-------------------------------')
-    while 1:
-        start_signal = pp.read(6)
-        if start_signal and not mode_auto:
-            # auto run
-            print('autoMode')
-            mode_auto = 1
-            sleep(.1)
-            plane.arm()
-            sleep(.1)
-            plane.throttle_test()
-            sleep(.1)
-            plane.disarm()
-            print('mission completed')
-            pass
-        else:
-            if not start_signal:
-                mode_auto = 0
-        print(start_signal)
-        sleep(.1)
+    # while 1:
+    #     start_signal = pp.read(6)
+    #     if start_signal and not mode_auto:
+    #         # auto run
+    #         print('autoMode')
+    #         mode_auto = 1
+    #         sleep(.1)
+    #         plane.arm()
+    #         sleep(.1)
+    #         plane.throttle_test()
+    #         sleep(.1)
+    #         plane.disarm()
+    #         print('mission completed')
+    #         pass
+    #     else:
+    #         if not start_signal:
+    #             mode_auto = 0
+    #     print(start_signal)
+    #     sleep(.1)
