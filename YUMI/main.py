@@ -4,20 +4,20 @@ from threading import Thread
 from queue import Queue
 from ins import get_only
 from enum import IntEnum, auto
-
+import cv2
 import numpy as np
 import cv2
 import pigpio
 
 # -----config-----
-DEBUG=1
-
+DEBUG           = 1
+CARENA_NUM      = 1
 
 # ---parameter----
-TAKEOFF_SPEED = 22
-LAND_SPEED = 18
-NORMAL_SPEED = 10
-LOOP_INTERNAL = 0.0005
+TAKEOFF_SPEED   = 22
+LAND_SPEED      = 18
+NORMAL_SPEED    = 10
+LOOP_INTERNAL   = 0.0005
 
 
 # cv2 const
@@ -72,13 +72,17 @@ DISARM
 ------------------------------------------
 核心: 循線、繞色塊、穩色塊
 """
-
 def debug(f):
     def _f(*args, **kwargs):
         print('{:^50}'.format(f.__name__).replace(' ', '-'))
         f(*args, **kwargs)
         print('-'*50)
     return _f
+
+def p(*arg, **kws):
+
+    if DEBUG:
+        print(*arg, **kws)
 
 # maybe also be a pid-controller
 class Controller(Thread):
@@ -178,6 +182,7 @@ class Plane():
         self.sonic = Sonic(self._pi)
         self.hight = 130
         Controller(self.output_queue, 13)
+        self.capture = cv2.VideoCapture(2)
 
     @debug
     def arm(self):
@@ -299,9 +304,6 @@ class Plane():
                 pass
         self.output_queue.put(*arg, **kws)
 
-def p(*arg, **kws):
-    if DEBUG:
-        print(*arg, **kws)
 
 if __name__ == '__main__':
     # ----------------------------------------------
