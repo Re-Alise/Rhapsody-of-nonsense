@@ -9,6 +9,11 @@ import numpy as np
 import cv2
 import pigpio
 
+TAKEOFF_SPEED = 22
+LAND_SPEED = 18
+NORMAL_SPEED = 10
+
+
 # cv2 const
 ORIGINAL_IMAGE_SIZE = (640, 480)
 IMAGE_SIZE = (320, 240)
@@ -144,7 +149,7 @@ class Sonic():
         print(times)
         input('')
         
-class DroneControl(IntEnum):
+class DC(IntEnum):
         PITCH = 0
         ROLL = 1
         THROTTLE = 2
@@ -266,7 +271,10 @@ class Plane():
 
     def output(self, *arg, **kws):
         while self.output_queue.full():
-            self.output_queue.get(timeout=0.001)
+            try:
+                self.output_queue.get(timeout=0.00001)
+            except:
+                pass
         self.output_queue.put(*arg, **kws)
 
 if __name__ == '__main__':
