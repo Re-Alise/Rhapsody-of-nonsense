@@ -181,12 +181,8 @@ class Plane():
         self._pi.wave_tx_stop()
         self.sonic = Sonic(self._pi)
         self.hight = 130
-<<<<<<< HEAD
-        Controller(self.output_queue, 13, gpio_sonic=19)
-=======
         Controller(self.output_queue, 13)
         self.capture = cv2.VideoCapture(2)
->>>>>>> a04876c6e8fefbe41a65d2a59086a46e3ced1420
 
     @debug
     def arm(self):
