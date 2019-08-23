@@ -194,7 +194,7 @@ class Plane():
         
     @debug
     def mc(self, mode):
-        if mode = DC.OpticsFlow:
+        if mode == DC.OpticsFlow:
             self.output([(DC.MODE, -50)])
         else:
             self.output([(DC.MODE, 50)])
@@ -202,11 +202,11 @@ class Plane():
         sleep(0.04)
 
     @debug
-    def take_off(self):
+    def take_off(self, hight, speed=10):
         """依靠超音波 去起飛
         """
-        self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, TAKEOFF_SPEED), (DC.YAW, 0)])
-        while self.sonic.value < 85:
+        self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, speed), (DC.YAW, 0)])
+        while self.sonic.value < hight:
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, 0)])
 
@@ -217,16 +217,30 @@ class Plane():
         self.output([(DC.THROTTLE, -50)])
 
     @debug
-    def idle(self, sec=10, target=None, pTerm=2):
+    def idle(self, sec=-1, target=None, pTerm=3):
         if target is None:
             target = self.sonic.value
         p(target)
         now = time()
-        while time()-now<sec:
-            tmp = target-self.sonic.value
-            tmp *= pTerm
-            self.output([(DC.THROTTLE, int(tmp))])
-            sleep(LOOP_INTERNAL)
+        if sec>0:
+            while time()-now<sec:
+                tmp = target-self.sonic.value
+                tmp *= pTerm
+                tmp = min(max(tmp, -20), 20)
+                self.output([(DC.THROTTLE, int(tmp))])
+                sleep(LOOP_INTERNAL)
+        else:
+            stmp = time()
+            while time-now < 20:
+                if abs(self.sonic.value-target)>3:
+                    stmp = time()
+                elif time-stmp > 4:
+                    break
+                tmp = target-self.sonic.value
+                tmp *= pTerm
+                tmp = min(max(tmp, -20), 20)
+                self.output([(DC.THROTTLE, int(tmp))])
+                sleep(LOOP_INTERNAL)
 
     @debug
     def land(self):
@@ -323,8 +337,14 @@ if __name__ == '__main__':
             plane.arm()
             plane.mc(DC.OpticsFlow)
             # plane.throttle_test()
-            plane.take_off()
-            plane.idle()
+            plane.take_off(80)
+            # plane.take_off(95, 12)
+            # plane.take_off(110, 10)
+            # plane.take_off(125, 10)
+            plane.idle(target=95)
+            plane.idle(target=110)
+            plane.idle(target=125)
+            plane.idle(sec=5)
             plane.land()
             plane.mc(DC.Manual)
             plane.disarm()
