@@ -3,11 +3,11 @@ import RPi.GPIO as GPIO
 import time
  
 #GPIO Mode (BOARD / BCM)
-GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
  
 #set GPIO Pins
-GPIO_TRIGGER = 3
-GPIO_ECHO = 5
+GPIO_TRIGGER = 19
+GPIO_ECHO = 26
  
 #set GPIO direction (IN / OUT)
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         while True:
             dist = distance()
             print ("Measured Distance = %.1f cm" % dist)
-            time.sleep(1)
+            time.sleep(.1)
  
         # Reset by pressing CTRL + C
     except KeyboardInterrupt:

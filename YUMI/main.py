@@ -3,11 +3,22 @@ from ppm import PPM
 from threading import Thread
 from queue import Queue
 from ins import get_only
-from enum import IntEnum
-
+from enum import IntEnum, auto
+import cv2
 import numpy as np
 import cv2
 import pigpio
+
+# -----config-----
+DEBUG           = 1
+CARENA_NUM      = 1
+
+# ---parameter----
+TAKEOFF_SPEED   = 22
+LAND_SPEED      = 18
+NORMAL_SPEED    = 10
+LOOP_INTERNAL   = 0.0005
+
 
 # cv2 const
 ORIGINAL_IMAGE_SIZE = (640, 480)
@@ -61,6 +72,18 @@ DISARM
 ------------------------------------------
 核心: 循線、繞色塊、穩色塊
 """
+def debug(f):
+    def _f(*args, **kwargs):
+        print('{:^50}'.format(f.__name__).replace(' ', '-'))
+        f(*args, **kwargs)
+        print('-'*50)
+    return _f
+
+def p(*arg, **kws):
+
+    if DEBUG:
+        print(*arg, **kws)
+
 # maybe also be a pid-controller
 class Controller(Thread):
     """PPM output controller powered by pigpio
@@ -100,42 +123,51 @@ class Controller(Thread):
 
 class Sonic():
     def __init__(self, pi, trigger_pin=19, echo_pin=26):
+        print('sonic init')
         self._pi = pi
-        self._pi.callback(echo_pin, pigpio.EITHER_EDGE, self.dealt)
+        pi.callback(echo_pin, pigpio.EITHER_EDGE, self.dealt)
         self.value = 0
         self.time_rise = 0
+        # wf = []
+        # wf.append(pigpio.pulse(1 << trigger_pin, 0, 10))
+        # wf.append(pigpio.pulse(0, 1 << trigger_pin, 40*1000-10))
+        # pi.wave_clear()
 
+        # pi.wave_add_generic(wf)
+        # wid = pi.wave_create()
+        # pi.wave_send_repeat(wid)
+
+
+    # 怕因為溢位而出問題
     def dealt(self, gpio, level, tick):
         if level == 1: # rising
-            self.time_rise = time()
+            self.time_rise = tick
+            # self.num1+=1
         elif level == 0: # falling
-            passTime = time()-self.time_rise
-            if 0.0001 < passTime < 0.025:
-                self.value = passTime*17150
-
-    def run(self):
-        while 1:
-            sleep(.033)
-            self._pi.write(19, 1)
-            sleep(.00001)
-            self._pi.write(19, 0)
+        # if self.num
+            passTime = tick-self.time_rise
+            if passTime < 25000:
+                self.value = passTime*.017150
     
-    def tet(self, sec=10):
+    def test(self, sec=10):
         now = time()
         times = 0
         while time()-now < sec:
             times+=1
-            sleep(.1):
-            print(self.value)
+            sleep(.1)
+            print('value:', self.value)
         print(times)
+        input('')
         
-class DroneControl(IntEnum):
+class DC(IntEnum):
         PITCH = 0
         ROLL = 1
         THROTTLE = 2
         YAW = 3
-        MODE = 5
-        AUTO = 6
+        MODE = 4 # -50 auto, 50 manual
+        AUTO = 5
+        OpticsFlow = auto()
+        Manual = auto()
 
 class Plane():
     """main program
@@ -149,52 +181,71 @@ class Plane():
         self._pi.wave_tx_stop()
         self.sonic = Sonic(self._pi)
         self.hight = 130
+<<<<<<< HEAD
         Controller(self.output_queue, 13, gpio_sonic=19)
+=======
+        Controller(self.output_queue, 13)
+        self.capture = cv2.VideoCapture(2)
+>>>>>>> a04876c6e8fefbe41a65d2a59086a46e3ced1420
 
-    def regulate(self):
-        pass
-
+    @debug
     def arm(self):
         sleep(0.1)
-        self.output([(DroneControl.THROTTLE, -50), (DroneControl.YAW, 50)]) # set throttle to lowest, yaw to right
+        self.output([(DC.THROTTLE, -50), (DC.YAW, 50)]) # set throttle to lowest, yaw to right
         sleep(2)
-        self.output([(DroneControl.THROTTLE, 0)])
+        self.output([(DC.THROTTLE, 0)])
+        sleep(1)
+        
+    @debug
+    def mc(self, mode):
+        if mode = DC.OpticsFlow:
+            self.output([(DC.MODE, -50)])
+        else:
+            self.output([(DC.MODE, 50)])
+        # 保證切換完畢
+        sleep(0.04)
 
-    def predealt(self):
-        """幫邊緣做偏移
-        """
-
+    @debug
     def take_off(self):
         """依靠超音波 去起飛
         """
-        self.output([(DroneControl.PITCH, 0), (DroneControl.ROLL, 0), (DroneControl.THROTTLE, 5), (DroneControl.YAW, 0)])
-        while 1:
-            if self.sonic.value>100:
-                break
-        self.output([(DroneControl.THROTTLE, 0)])
+        self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, TAKEOFF_SPEED), (DC.YAW, 0)])
+        while self.sonic.value < 85:
+            sleep(LOOP_INTERNAL)
+        self.output([(DC.THROTTLE, 0)])
 
+    @debug
     def throttle_test(self):
-        self.output([(DroneControl.THROTTLE, 0)])
+        self.output([(DC.THROTTLE, 0)])
         sleep(0.1)
-        self.output([(DroneControl.THROTTLE, -50)])
+        self.output([(DC.THROTTLE, -50)])
 
+    @debug
+    def idle(self, sec=10, target=None, pTerm=2):
+        if target is None:
+            target = self.sonic.value
+        p(target)
+        now = time()
+        while time()-now<sec:
+            tmp = target-self.sonic.value
+            tmp *= pTerm
+            self.output([(DC.THROTTLE, int(tmp))])
+            sleep(LOOP_INTERNAL)
+
+    @debug
     def land(self):
-        self.output([(DroneControl.PITCH, 0), (DroneControl.ROLL, 0), (DroneControl.THROTTLE, -5), (DroneControl.YAW, 0),])
-        while 1:
-            self.sonic.start()
-            self.sonic.join()
-            if self.sonic.value<5:
-                self.output([(DroneControl.THROTTLE, -50),])
-                break
+        self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, -LAND_SPEED), (DC.YAW, 0),])
+        while self.sonic.value>8:
+            sleep(LOOP_INTERNAL)
+        self.output([(DC.THROTTLE, -50)])
+        while self.sonic.value>3:
+            sleep(LOOP_INTERNAL)
 
+    @debug
     def disarm(self):
-        self.output([(DroneControl.THROTTLE, -50), (DroneControl.YAW, -50)]) # set throttle to lowest, yaw to lift
+        self.output([(DC.THROTTLE, -50), (DC.YAW, -50)]) # set throttle to lowest, yaw to lift
         sleep(5)
-        self.output([(DroneControl.YAW, 0)])
-
-    def auto(self):
-        n = self._pi.read(6)
-        return n
+        self.output([(DC.YAW, 0)])
 
     def _stabilize(self, frame, color):
         xx, yy, _ = self._find_center(frame, MASK_ALL)
@@ -251,8 +302,12 @@ class Plane():
 
     def output(self, *arg, **kws):
         while self.output_queue.full():
-            self.output_queue.get(timeout=0.001)
+            try:
+                self.output_queue.get(timeout=0.00001)
+            except:
+                pass
         self.output_queue.put(*arg, **kws)
+
 
 if __name__ == '__main__':
     # ----------------------------------------------
@@ -260,20 +315,22 @@ if __name__ == '__main__':
     plane = Plane()
     mode_auto = pp.read(6)
     # test the sonic
-    plane.sonic.test()
+    # plane.sonic.test()
 
     print('init finish-------------------------------')
     while 1:
         start_signal = pp.read(6)
         if start_signal and not mode_auto:
-            # auto run
-            print('autoMode')
             mode_auto = 1
-            sleep(.1)
+            # auto run
+            print('mission start')
             plane.arm()
-            sleep(.1)
-            plane.throttle_test()
-            sleep(.1)
+            plane.mc(DC.OpticsFlow)
+            # plane.throttle_test()
+            plane.take_off()
+            plane.idle()
+            plane.land()
+            plane.mc(DC.Manual)
             plane.disarm()
             print('mission completed')
             pass
