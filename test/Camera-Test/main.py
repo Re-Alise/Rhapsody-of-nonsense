@@ -10,7 +10,8 @@ CONTOUR_COLOR = (0, 255, 64) #BGR
 CENTROID_COLOR = (0, 0, 255)  # BGR
 
 capture = cv2.VideoCapture(0)
-
+capture.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 320)
 
 def make_contour(im, imm):
     contours, _ = cv2.findContours(im, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -65,26 +66,26 @@ def make_centroid(im, imm):
 if __name__ == '__main__':
     while True:
         cret, frame = capture.read()
-        frame = cv2.resize(frame, IMAGE_SIZE)
+        # frame = cv2.resize(frame, IMAGE_SIZE)
 
         # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         # oret, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_OTSU)
         # im = owo(otsu, frame)
 
-        blurred = cv2.GaussianBlur(frame, BLUR_PIXEL, 0)
-        ranged = cv2.inRange(blurred, (0, 0, 0), LINE_THRESHOLD)
-        # cv2.imshow('Camera test', ranged)
-        target, im = make_contour(ranged, frame)
-        if target is None:
-            continue
-        else:
-            # print(target)
-            pass
+        # blurred = cv2.GaussianBlur(frame, BLUR_PIXEL, 0)
+        # ranged = cv2.inRange(blurred, (0, 0, 0), LINE_THRESHOLD)
+        # # cv2.imshow('Camera test', ranged)
+        # target, im = make_contour(ranged, frame)
+        # if target is None:
+        #     continue
+        # else:
+        #     # print(target)
+        #     pass
 
-        # cv2.imshow('Camera test', im)
+        # # cv2.imshow('Camera test', im)
 
-        centroid = make_centroid(im, frame)
+        # centroid = make_centroid(im, frame)
         # print('X offset:', centroid[0]-(IMAGE_SIZE[0]/2))
 
         cv2.imshow('Camera test', frame)
@@ -92,7 +93,7 @@ if __name__ == '__main__':
         # cv2.imshow('Camera test', gray)
         # cv2.imshow('Camera test', frame)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord(' '):
             break
 
     capture.release()

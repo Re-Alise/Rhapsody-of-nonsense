@@ -224,21 +224,23 @@ class Plane():
         now = time()
         if sec>0:
             while time()-now<sec:
+                p(self.sonic.value)
                 tmp = target-self.sonic.value
                 tmp *= pTerm
-                tmp = min(max(tmp, -20), 20)
+                tmp = min(max(tmp, -15), 20)
                 self.output([(DC.THROTTLE, int(tmp))])
                 sleep(LOOP_INTERNAL)
         else:
             stmp = time()
-            while time-now < 20:
+            while time()-now < 20:
+                p(self.sonic.value)
                 if abs(self.sonic.value-target)>3:
                     stmp = time()
-                elif time-stmp > 4:
+                elif time()-stmp > 4:
                     break
                 tmp = target-self.sonic.value
                 tmp *= pTerm
-                tmp = min(max(tmp, -20), 20)
+                tmp = min(max(tmp, -15), 20)
                 self.output([(DC.THROTTLE, int(tmp))])
                 sleep(LOOP_INTERNAL)
 
@@ -325,8 +327,8 @@ if __name__ == '__main__':
     plane = Plane()
     mode_auto = pp.read(6)
     # test the sonic
-    # plane.sonic.test()
-
+    # plane.sonic.test(1200)
+                                                                                                                                                    
     print('init finish-------------------------------')
     while 1:
         start_signal = pp.read(6)
@@ -337,14 +339,15 @@ if __name__ == '__main__':
             plane.arm()
             plane.mc(DC.OpticsFlow)
             # plane.throttle_test()
-            plane.take_off(80)
-            # plane.take_off(95, 12)
-            # plane.take_off(110, 10)
-            # plane.take_off(125, 10)
-            plane.idle(target=95)
-            plane.idle(target=110)
-            plane.idle(target=125)
-            plane.idle(sec=5)
+            # idle 70 -> 120 cm
+            plane.take_off(40, 22)
+            plane.take_off(70, 10)
+
+
+            # plane.idle(target=95)
+            # plane.idle(target=110)
+            # plane.idle(target=125)
+            plane.idle(sec=10, target=70)
             plane.land()
             plane.mc(DC.Manual)
             plane.disarm()
