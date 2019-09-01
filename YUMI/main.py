@@ -1,13 +1,12 @@
 from time import time, sleep
-from ppm import PPM
+# from ppm import PPM
 from threading import Thread
 from queue import Queue
 from ins import get_only
 from enum import IntEnum, auto
 import cv2
 import numpy as np
-import cv2
-import pigpio
+# import pigpio
 
 # -----config-----
 DEBUG           = 1
@@ -321,8 +320,56 @@ class Plane():
         self.output_queue.put(*arg, **kws)
 
 
+# class Record(Thread):
+#     def __init__(self, cap, **kwargs):
+#         Thread.__init__(self)
+#         # super(Record, self).__init__(**kwargs)
+#         self.daemon = 1
+#         self.cap = cap
+#         # self.out = out
+#         self.rec_stop = False
+#         self.start()
+
+#     def run(self):
+#         while(self.cap.isOpened()):
+#             ret, frame = self.cap.read()
+#             cv2.imshow('frame',frame)
+#             if ret == True:
+#                 # 寫入影格
+#                 # self.out.write(frame)
+#                 print('owo')
+#                 cv2.imshow('frame',frame)
+#                 if self.rec_stop:
+#                     print('oxo')
+#                     self.cap.release()
+#                     self.out.release()
+#                     cv2.destroyAllWindows()
+#                     break
+#             else:
+#                 break
+
+#     def stop_rec(self):
+#         print("=OxO=")
+#         self.rec_stop = True
+
+
+def init_rec():
+    cap = cv2.VideoCapture(0)
+    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
+    fourcc = cv2.VideoWriter_fourcc(*'X264')
+    # out = cv2.VideoWriter(str(time())+'.avi', fourcc, 30.0, (640, 360))
+    record = Record(cap)
+    return record
+
+
+
 if __name__ == '__main__':
     # ----------------------------------------------
+    # record = init_rec()
+    # input('')
+    # record.stop_rec()
+
     pp = pigpio.pi()
     plane = Plane()
     mode_auto = pp.read(6)
@@ -347,7 +394,7 @@ if __name__ == '__main__':
             # plane.idle(target=95)
             # plane.idle(target=110)
             # plane.idle(target=125)
-            plane.idle(sec=10, target=70)
+            plane.idle(sec=240, target=70)
             plane.land()
             plane.mc(DC.Manual)
             plane.disarm()
