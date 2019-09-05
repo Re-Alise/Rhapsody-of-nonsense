@@ -1,12 +1,13 @@
 from time import time, sleep
-# from ppm import PPM
+from ppm import PPM
 from threading import Thread
 from queue import Queue
 from ins import get_only
 from enum import IntEnum, auto
 import cv2
 import numpy as np
-# import pigpio
+import pigpio
+import os
 
 # -----config-----
 DEBUG           = 1
@@ -48,6 +49,8 @@ MASK_RIGHT[106:320, 0:240] = 255
 
 speed = 1
 adjust = 1
+
+
 
 """
 標準流程
@@ -174,6 +177,7 @@ class Plane():
 
     def __init__(self):
         # just one buffer because we just need the last value
+        self.output_count = 0
         self.output_queue = Queue(1)
         # self.cap = cv2.VideoCapture(0)
         self._pi = get_only(pigpio.pi)
@@ -181,15 +185,20 @@ class Plane():
         self.sonic = Sonic(self._pi)
         self.hight = 130
         Controller(self.output_queue, 13)
-        self.capture = cv2.VideoCapture(2)
+        # self.capture = cv2.VideoCapture(2)
 
     @debug
     def arm(self):
+        self.reset()
         sleep(0.1)
         self.output([(DC.THROTTLE, -50), (DC.YAW, 50)]) # set throttle to lowest, yaw to right
         sleep(2)
         self.output([(DC.THROTTLE, 0)])
         sleep(1)
+
+    @debug
+    def reset(self):
+        self.output_count = 0
         
     @debug
     def mc(self, mode):
@@ -312,6 +321,7 @@ class Plane():
         return cX, cY, sumW
 
     def output(self, *arg, **kws):
+        self.output_count += 1
         while self.output_queue.full():
             try:
                 self.output_queue.get(timeout=0.00001)
@@ -320,55 +330,105 @@ class Plane():
         self.output_queue.put(*arg, **kws)
 
 
-# class Record(Thread):
-#     def __init__(self, cap, **kwargs):
-#         Thread.__init__(self)
-#         # super(Record, self).__init__(**kwargs)
-#         self.daemon = 1
-#         self.cap = cap
-#         # self.out = out
-#         self.rec_stop = False
-#         self.start()
-
-#     def run(self):
-#         while(self.cap.isOpened()):
-#             ret, frame = self.cap.read()
-#             cv2.imshow('frame',frame)
-#             if ret == True:
-#                 # 寫入影格
-#                 # self.out.write(frame)
-#                 print('owo')
-#                 cv2.imshow('frame',frame)
-#                 if self.rec_stop:
-#                     print('oxo')
-#                     self.cap.release()
-#                     self.out.release()
-#                     cv2.destroyAllWindows()
-#                     break
-#             else:
-#                 break
-
-#     def stop_rec(self):
-#         print("=OxO=")
-#         self.rec_stop = True
+class Record(Thread):
+    def __init__(self, **kwargs):
+        Thread.__init__(self)
+        # super(Record, self).__init__(**kwargs)
+        self.daemon = 1
+        self.read_count = 0
+        self.write_count = 0
+        # self.cap = cap
+        # self.out = out
+        self.init_capture()
+        self.rec_stop = False
+        print('=' * 20 + 'Video recording...' + '=' * 20)
+        self.start()
 
 
-def init_rec():
+    def threshold(self, frame):
+        r = frame[:,:,2]
+        g = frame[:,:,1]
+        b = frame[:, :, 0]
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        ret3,th1 = cv2.threshold(r+100,150,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret3,th2 = cv2.threshold(g+100,120,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret3,th3 = cv2.threshold(b+100,100,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret3,th0 = cv2.threshold(gray,100,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
+        return th0, th1, th2, th3
+
+    def init_capture(self):
+        self.cap = cv2.VideoCapture(0)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        time_str = str(int(time()))
+        os.mkdir('./' + time_str)
+        self.out = cv2.VideoWriter(time_str + '/original' + '.avi', fourcc,
+                            10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
+        # self.out0 = cv2.VideoWriter(time_str + '/gray' + '.avi', fourcc,
+        #                     10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
+        # self.out1 = cv2.VideoWriter(time_str + '/r' + '.avi', fourcc,
+        #                     10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
+        # self.out2 = cv2.VideoWriter(time_str + '/g' + '.avi', fourcc,
+        #                     10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
+        # self.out3 = cv2.VideoWriter(time_str + '/b' + '.avi', fourcc,
+        #                     10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
+
+    def run(self):
+        while(self.cap.isOpened()):
+            ret, frame = self.cap.read()
+            self.read_count += 1
+            if ret == True:
+                self.out.write(frame)
+                self.write_count += 1
+                # th0, th1, th2, th3 = self.threshold(frame)
+                # self.out0.write(cv2.cvtColor(th0, cv2.COLOR_GRAY2BGR))
+                # self.out1.write(cv2.cvtColor(th1, cv2.COLOR_GRAY2BGR))
+                # self.out2.write(cv2.cvtColor(th2, cv2.COLOR_GRAY2BGR))
+                # self.out3.write(cv2.cvtColor(th3, cv2.COLOR_GRAY2BGR))
+                # cv2.imshow('VideoWriter test', frame)
+
+            if self.rec_stop:
+                self.cap.release()
+                self.out.release()
+                # self.out0.release()
+                # self.out1.release()
+                # self.out2.release()
+                # self.out3.release()
+                break
+
+    def stop_rec(self):
+        # print("=OxO=")
+        sleep(3)
+        print('=' * 20 + 'Record stopped' + '=' * 20)
+        self.rec_stop = True
+
+
+def capture_test():
     cap = cv2.VideoCapture(0)
-    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
-    fourcc = cv2.VideoWriter_fourcc(*'X264')
-    # out = cv2.VideoWriter(str(time())+'.avi', fourcc, 30.0, (640, 360))
-    record = Record(cap)
-    return record
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(str(time()) + '.avi', fourcc,
+                          30.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
+    while True:
+        ret, frame = cap.read()
+        out.write(frame)
+        cv2.imshow('VideoWriter test', frame)
+
+        if cv2.waitKey(1) & 0xFF == ord(' '):
+            break
+
+    out.release()
+    cap.release()
+    cv2.destroyAllWindows()
 
 
 
 if __name__ == '__main__':
     # ----------------------------------------------
-    # record = init_rec()
-    # input('')
-    # record.stop_rec()
 
     pp = pigpio.pi()
     plane = Plane()
@@ -380,6 +440,7 @@ if __name__ == '__main__':
     while 1:
         start_signal = pp.read(6)
         if start_signal and not mode_auto:
+            record = Record()
             mode_auto = 1
             # auto run
             print('mission start')
@@ -394,10 +455,16 @@ if __name__ == '__main__':
             # plane.idle(target=95)
             # plane.idle(target=110)
             # plane.idle(target=125)
-            plane.idle(sec=240, target=70)
+            plane.idle(sec=20, target=70)
+            plane.idle(sec=20, target=75)
+            plane.idle(sec=20, target=80)
             plane.land()
             plane.mc(DC.Manual)
             plane.disarm()
+            record.stop_rec()
+            print('read count:', record.read_count)
+            print('write count:', record.write_count)
+            print('output count:', plane.output_count)
             print('mission completed')
             pass
         else:
