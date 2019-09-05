@@ -4,6 +4,8 @@ from threading import Thread
 from queue import Queue
 from ins import get_only
 from enum import IntEnum, auto
+from tfminilidar import TFMiniLidar
+
 import cv2
 import numpy as np
 import pigpio
@@ -18,6 +20,8 @@ TAKEOFF_SPEED   = 22
 LAND_SPEED      = 18
 NORMAL_SPEED    = 10
 LOOP_INTERNAL   = 0.0005
+
+TF_PORT = 'owo'
 
 
 # cv2 const
@@ -46,10 +50,6 @@ MASK_LINE_MIDDLE[101:140, 81:240] = 255
 
 MASK_RIGHT = np.zeros([240, 320],dtype=np.uint8)
 MASK_RIGHT[106:320, 0:240] = 255
-
-speed = 1
-adjust = 1
-
 
 
 """
@@ -182,7 +182,7 @@ class Plane():
         # self.cap = cv2.VideoCapture(0)
         self._pi = get_only(pigpio.pi)
         self._pi.wave_tx_stop()
-        self.sonic = Sonic(self._pi)
+        self.lidar = TFMiniLidar(TF_PORT)
         self.hight = 130
         Controller(self.output_queue, 13)
         # self.capture = cv2.VideoCapture(2)
@@ -214,7 +214,7 @@ class Plane():
         """依靠超音波 去起飛
         """
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, speed), (DC.YAW, 0)])
-        while self.sonic.value < hight:
+        while self.lidar.value < hight:
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, 0)])
 
@@ -227,13 +227,13 @@ class Plane():
     @debug
     def idle(self, sec=-1, target=None, pTerm=3):
         if target is None:
-            target = self.sonic.value
+            target = self.lidar.value
         p(target)
         now = time()
         if sec>0:
             while time()-now<sec:
-                p(self.sonic.value)
-                tmp = target-self.sonic.value
+                p(self.lidar.value)
+                tmp = target-self.lidar.value
                 tmp *= pTerm
                 tmp = min(max(tmp, -15), 20)
                 self.output([(DC.THROTTLE, int(tmp))])
@@ -241,12 +241,12 @@ class Plane():
         else:
             stmp = time()
             while time()-now < 20:
-                p(self.sonic.value)
-                if abs(self.sonic.value-target)>3:
+                p(self.lidar.value)
+                if abs(self.lidar.value-target)>3:
                     stmp = time()
                 elif time()-stmp > 4:
                     break
-                tmp = target-self.sonic.value
+                tmp = target-self.lidar.value
                 tmp *= pTerm
                 tmp = min(max(tmp, -15), 20)
                 self.output([(DC.THROTTLE, int(tmp))])
@@ -255,10 +255,10 @@ class Plane():
     @debug
     def land(self):
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, -LAND_SPEED), (DC.YAW, 0),])
-        while self.sonic.value>8:
+        while self.lidar.value>8:
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, -50)])
-        while self.sonic.value>3:
+        while self.lidar.value>3:
             sleep(LOOP_INTERNAL)
 
     @debug

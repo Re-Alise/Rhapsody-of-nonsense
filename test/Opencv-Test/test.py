@@ -102,6 +102,6 @@ if __name__ == "__main__":
         # print(xx-160)
         if cv2.waitKey(1) & 0xFF == ord(' '):
             break
-    print(pp)   
+    print(pp)
     cap.release()
     cv2.destroyAllWindows()
