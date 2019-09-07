@@ -5,6 +5,7 @@ from queue import Queue
 from ins import get_only
 from enum import IntEnum, auto
 from tfminilidar import TFMiniLidar
+from serialport import serial_ports
 
 import cv2
 import numpy as np
@@ -22,7 +23,12 @@ NORMAL_SPEED    = 10
 LOOP_INTERNAL   = 0.0005
 
 
-TF_PORT = '/dev/ttyUSB1'
+ports = serial_ports('ttyUSB')
+if len(ports) == 0:
+    print('No serial connection detected')
+    exit()
+TF_PORT = ports[0]
+
 PIN_BUZZER = 11
 BUZZER_INTERVAL_L = 0.5
 BUZZER_INTERVAL_H = 1 - BUZZER_INTERVAL_L
