@@ -239,31 +239,11 @@ class Plane():
         self.output([(DC.THROTTLE, -50)])
 
     @verbose
-    def idle(self, sec=-1, target=None, pTerm=3):
-        if target is None:
-            target = self.lidar.value
-        p(target)
+    def idle(self, sec, target=None, pTerm=3):
         now = time()
         if sec>0:
             while time()-now<sec:
-                p(self.lidar.value)
-                tmp = target-self.lidar.value
-                tmp *= pTerm
-                tmp = min(max(tmp, -15), 20)
-                self.output([(DC.THROTTLE, int(tmp))])
-                sleep(LOOP_INTERNAL)
-        else:
-            stmp = time()
-            while time()-now < 20:
-                p(self.lidar.value)
-                if abs(self.lidar.value-target)>3:
-                    stmp = time()
-                elif time()-stmp > 4:
-                    break
-                tmp = target-self.lidar.value
-                tmp *= pTerm
-                tmp = min(max(tmp, -15), 20)
-                self.output([(DC.THROTTLE, int(tmp))])
+                self.check()
                 sleep(LOOP_INTERNAL)
 
     def check(self, overhight=80):
