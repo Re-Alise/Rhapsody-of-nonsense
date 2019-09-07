@@ -21,6 +21,7 @@ LAND_SPEED      = 18
 NORMAL_SPEED    = 10
 LOOP_INTERNAL   = 0.0005
 
+
 TF_PORT = '/dev/ttyUSB1'
 PIN_BUZZER = 11
 BUZZER_INTERVAL_L = 0.5
@@ -80,7 +81,7 @@ DISARM
 ------------------------------------------
 核心: 循線、繞色塊、穩色塊
 """
-def debug(f):
+def verbose(f):
     def _f(*args, **kwargs):
         print('{:^50}'.format(f.__name__).replace(' ', '-'))
         f(*args, **kwargs)
@@ -194,7 +195,7 @@ class Plane():
         Controller(self.output_queue, 13)
         # self.capture = cv2.VideoCapture(2)
 
-    @debug
+    @verbose
     def arm(self):
         self.reset()
         sleep(0.1)
@@ -203,11 +204,11 @@ class Plane():
         self.output([(DC.THROTTLE, 0)])
         sleep(1)
 
-    @debug
+    @verbose
     def reset(self):
         self.output_count = 0
         
-    @debug
+    @verbose
     def mc(self, mode):
         if mode == DC.OpticsFlow:
             self.output([(DC.MODE, -50)])
@@ -216,7 +217,7 @@ class Plane():
         # 保證切換完畢
         sleep(0.04)
 
-    @debug
+    @verbose
     def take_off(self, hight, speed=10):
         """依靠超音波 去起飛
         """
@@ -225,13 +226,13 @@ class Plane():
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, 0)])
 
-    @debug
+    @verbose
     def throttle_test(self):
         self.output([(DC.THROTTLE, 0)])
         sleep(0.1)
         self.output([(DC.THROTTLE, -50)])
 
-    @debug
+    @verbose
     def idle(self, sec=-1, target=None, pTerm=3):
         if target is None:
             target = self.lidar.value
@@ -259,7 +260,16 @@ class Plane():
                 self.output([(DC.THROTTLE, int(tmp))])
                 sleep(LOOP_INTERNAL)
 
-    @debug
+    def check(self, overhight=80):
+        if self.sonic.value>overhight:
+            print('Mission Fail')
+            self.output([(DC.THROTTLE, -30), (DC.MODE, -50), (DC.YAW, 0), (DC.PITCH, 0), (DC.ROW, 0)])
+            while 1:
+                print('Mission Fail')
+                sleep(0.1)
+
+
+    @verbose
     def land(self):
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, -LAND_SPEED), (DC.YAW, 0),])
         while self.sonic.value>8:
@@ -268,7 +278,7 @@ class Plane():
         while self.sonic.value>4:
             sleep(LOOP_INTERNAL)
 
-    @debug
+    @verbose
     def disarm(self):
         self.output([(DC.THROTTLE, -50), (DC.YAW, -50)]) # set throttle to lowest, yaw to lift
         sleep(5)
