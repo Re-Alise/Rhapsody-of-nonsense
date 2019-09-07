@@ -1,6 +1,7 @@
 from threading import Thread
 from serial import Serial
 from time import sleep
+from serialport import serial_ports
 
 TF_BAUDRATE = 115200
 DIST_L = 2
@@ -106,5 +107,9 @@ class TFMiniLidar(Thread):
 
 
 if __name__ == '__main__':
-    s = Serial('/dev/ttyUSB1', TF_BAUDRATE, timeout=0.1)
+    ports = serial_ports('ttyUSB')
+    if len(ports) == 0:
+        print('No serial connection detected')
+        exit()
+    s = Serial(ports[0], TF_BAUDRATE, timeout=0.1)
     measure(s, loop=True)

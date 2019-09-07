@@ -1,4 +1,8 @@
-def serial_ports():
+import sys
+import glob
+import serial
+
+def serial_ports(keyword=None):
     """ Lists serial port names
 
         :raises EnvironmentError:
@@ -18,6 +22,8 @@ def serial_ports():
 
     result = []
     for port in ports:
+        if keyword and keyword not in port:
+            continue
         try:
             s = serial.Serial(port)
             s.close()
@@ -25,3 +31,6 @@ def serial_ports():
         except (OSError, serial.SerialException):
             pass
     return result
+
+if __name__ == '__main__':
+    print(serial_ports('usb'))
