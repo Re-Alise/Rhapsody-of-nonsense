@@ -21,7 +21,13 @@ LAND_SPEED      = 18
 NORMAL_SPEED    = 10
 LOOP_INTERNAL   = 0.0005
 
-TF_PORT = 'owo'
+TF_PORT = '/dev/ttyUSB1'
+PIN_BUZZER = 11
+BUZZER_INTERVAL_L = 0.5
+BUZZER_INTERVAL_H = 1 - BUZZER_INTERVAL_L
+
+buzzer_time = time()
+buzzer_state = 0
 
 
 # cv2 const
@@ -182,7 +188,8 @@ class Plane():
         # self.cap = cv2.VideoCapture(0)
         self._pi = get_only(pigpio.pi)
         self._pi.wave_tx_stop()
-        self.lidar = TFMiniLidar(TF_PORT)
+        self.sonic = Sonic(self._pi)
+        self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
         self.hight = 130
         Controller(self.output_queue, 13)
         # self.capture = cv2.VideoCapture(2)
@@ -255,10 +262,10 @@ class Plane():
     @debug
     def land(self):
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, -LAND_SPEED), (DC.YAW, 0),])
-        while self.lidar.value>8:
+        while self.sonic.value>8:
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, -50)])
-        while self.lidar.value>3:
+        while self.sonic.value>4:
             sleep(LOOP_INTERNAL)
 
     @debug
@@ -426,49 +433,70 @@ def capture_test():
     cv2.destroyAllWindows()
 
 
+def beep(pi):
+    global buzzer_time, buzzer_state
+    # print(buzzer_time)
+    delta = abs(time() - buzzer_time)
+    if buzzer_state == 0:
+        interval = BUZZER_INTERVAL_L
+    else:
+        interval = BUZZER_INTERVAL_H 
+    if delta > interval:
+        # global buzzer_time
+        buzzer_state = abs(buzzer_state - 1)
+        pi.write(PIN_BUZZER, buzzer_state)
+        buzzer_time = time()
+
+
 
 if __name__ == '__main__':
     # ----------------------------------------------
-
+    # buzzer_time = time()
+    # buzzer_state = 0
     pp = pigpio.pi()
+    pp.set_mode(PIN_BUZZER, pigpio.OUTPUT)
     plane = Plane()
-    mode_auto = pp.read(6)
-    # test the sonic
-    # plane.sonic.test(1200)
-                                                                                                                                                    
+    # plane.sonic.test(100)
+    mode_auto = pp.read(6)                          
+                                                                         
     print('init finish-------------------------------')
     while 1:
-        start_signal = pp.read(6)
-        if start_signal and not mode_auto:
-            record = Record()
-            mode_auto = 1
-            # auto run
-            print('mission start')
-            plane.arm()
-            plane.mc(DC.OpticsFlow)
-            # plane.throttle_test()
-            # idle 70 -> 120 cm
-            plane.take_off(40, 22)
-            plane.take_off(70, 10)
+        try:
+            start_signal = pp.read(6)
+            if start_signal and not mode_auto:
+                pp.write(PIN_BUZZER, 0)
+                record = Record()
+                mode_auto = 1
+                # auto run
+                print('mission start')
+                plane.arm()
+                plane.mc(DC.OpticsFlow)
+                # plane.throttle_test()
+                # idle 70 -> 120 cm
+                plane.take_off(70, 22)
+                plane.take_off(120, 10)
 
 
-            # plane.idle(target=95)
-            # plane.idle(target=110)
-            # plane.idle(target=125)
-            plane.idle(sec=20, target=70)
-            plane.idle(sec=20, target=75)
-            plane.idle(sec=20, target=80)
-            plane.land()
-            plane.mc(DC.Manual)
-            plane.disarm()
-            record.stop_rec()
-            print('read count:', record.read_count)
-            print('write count:', record.write_count)
-            print('output count:', plane.output_count)
-            print('mission completed')
-            pass
-        else:
-            if not start_signal:
-                mode_auto = 0
-        print(start_signal)
-        sleep(.1)
+                # plane.idle(target=95)
+                # plane.idle(target=110)
+                # plane.idle(target=125)
+                plane.land()
+                plane.mc(DC.Manual)
+                plane.disarm()
+                record.stop_rec()
+                print('read count:', record.read_count)
+                print('write count:', record.write_count)
+                print('output count:', plane.output_count)
+                print('mission completed')
+                pass
+            else:
+                if not start_signal:
+                    mode_auto = 0
+            # print(start_signal)
+            beep(pp)
+            sleep(.1)
+        except KeyboardInterrupt:
+            print('owo')
+            pp.write(PIN_BUZZER, 0)
+            break
+
