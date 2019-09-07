@@ -8,7 +8,7 @@ DIST_H = 3
 STRENGTH_L = 4
 STRENTGTH_H = 5
 
-DEBUG = True
+DEBUG = False
 
 
 def measure(s: Serial, loop=False):
@@ -49,10 +49,11 @@ def measure(s: Serial, loop=False):
                 if checksum == datasum:
                     dist = int.from_bytes(
                         data[DIST_L] + data[DIST_H], byteorder='little')
-                    print('Distance:', dist, 'cm')
+                    if DEBUG:
+                        print('Distance:', dist, 'cm')
 
                     if not loop:
-                        return dist/100
+                        return dist
 
                 count = 1
                 data = [b]
@@ -72,14 +73,16 @@ class TFMiniLidar(Thread):
     port = None
     value = 0
 
-    def __init__(self, port: str=None):
+    def __init__(self, port: str=None, debug=False):
         Thread.__init__(self)
+        self.debug = debug
         self.daemon = 1
         self.value = 0
         if port:
             self.port = port
         else:
             print('no port')
+        self.start()
 
     def run(self):
         if not self.port:
@@ -95,10 +98,13 @@ class TFMiniLidar(Thread):
             return
         while 1:
             dist = measure(self.s)
+            if self.debug:
+                # print('lidar distance:' ,dist)
+                pass
             self.value = dist
             sleep(0.01)
 
 
 if __name__ == '__main__':
-    s = Serial('/dev/tty.usbserial', TF_BAUDRATE, timeout=0.1)
+    s = Serial('/dev/ttyUSB1', TF_BAUDRATE, timeout=0.1)
     measure(s, loop=True)
