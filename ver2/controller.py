@@ -66,8 +66,8 @@ class Controller():
 
     def _stabilize(self, color='k'):
         xx, yy, _, thr = self._find_center(self.frame_new, np.transpose(MASK_ALL))
-        pitch = (120-yy)//para
-        roll = (xx-160)//para
+        pitch = (160-yy)//para
+        roll = (xx-120)//para
         if self.debug:
             # show img
             pass
@@ -99,24 +99,18 @@ class Controller():
         frame = cv2.GaussianBlur(frame, (25, 25), 0)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # _, thr = cv2.threshold(gray,78,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-        thr = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
+        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 9, 2)
         # thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
-        thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
+        thr = cv2.morphologyEx(thr, cv2.MORPH_GRADIENT, kernel)
         thr = cv2.bitwise_and(thr, thr, mask=mask)
-        if self.debug:
-            ret_thr = thr
-            cv2.imshow('Replay', cv2.hconcat([frame, cv2.cv tColor(thr, cv2.COLOR_GRAY2BGR)]))
-            while not cv2.waitKey(0) & 0xFF == ord(' '):
-                sleep(0.1)
-        else:
-            ret_thr = None
+        
         contours, _ = cv2.findContours(thr,1,2)
         sumX=0
         sumY=0
         sumW=0
         for cnt in contours:
             M=cv2.moments(cnt)
-            if M['m00']<50:
+            if M['m00']<100:
                 continue
             sumX += M['m10']
             sumY += M['m01']
@@ -128,17 +122,27 @@ class Controller():
         if sumW == 0:
             print('Not found')
             # return -1, -1, 0
-            return 160, 120, 0, ret_thr
-        cX = sumX/sumW  
-        cY = sumY/sumW
+            # return 160, 120, 0, ret_thr
+            cX = 120
+            cY = 160
+        else:
+            cX = sumX/sumW  
+            cY = sumY/sumW
+
+        if self.debug:
+            ret_thr = thr
+            edited = np.copy(thr)
+            edited = cv2.cvtColor(edited, cv2.COLOR_GRAY2BGR)
+            cv2.circle(edited, (int(cX), int(cY)), 5, (178, 0, 192), -1)
+            cv2.putText(edited, 'cX: {}'.format(cX), (0, edited.shape[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+            cv2.putText(edited, 'cY: {}'.format(cY), (0, edited.shape[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+            cv2.putText(edited, 'sumW: {}'.format(sumW), (0, edited.shape[1]+40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+            cv2.imshow('Replay', cv2.hconcat([frame, edited]))
+            while not cv2.waitKey(0) & 0xFF == ord(' '):
+                sleep(0.1)
+        else:
+            ret_thr = None
         return cX, cY, sumW, ret_thr
-
-        # if self.replay_path:
-
-        #     cv2.imshow('Replay', thr)
-        #     # cv2.waitKey(0)
-        #     while not cv2.waitKey(0) & 0xFF == ord(' '):
-        #         sleep(0.1)
 
     def stop(self):
         self.record.stop_rec()
