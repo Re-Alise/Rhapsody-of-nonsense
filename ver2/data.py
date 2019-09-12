@@ -1,5 +1,6 @@
 from enum import IntEnum, auto
 import numpy as np
+import ins
 
 class DC(IntEnum):
     PITCH = 0
@@ -28,22 +29,24 @@ class COLOR(IntEnum):
     G = 1
     B = 0
 
+@ins.only
 class MASK():
-    ORIGIN = np.zeros([240, 320],dtype=np.uint8)
-    
-    ALL = ORIGIN
-    FORWARD = ORIGIN
-    TOP = ORIGIN
-    BUTTON = ORIGIN
-    LINE_MIDDLE = ORIGIN
-    RIGHT = ORIGIN
+    def __init__(self):
+        ORIGIN = np.zeros([240, 320],dtype=np.uint8)
+        
+        self.ALL = ORIGIN
+        self.FORWARD = ORIGIN
+        self.TOP = ORIGIN
+        self.BUTTON = ORIGIN
+        self.LINE_MIDDLE = ORIGIN
+        self.RIGHT = ORIGIN
 
-    ALL[0:240, 40:280] = 255
-    FORWARD[10:90, 10:310] = 255
-    TOP[0:120, 0:320] = 255
-    BUTTON[121:240, 0:320] = 255
-    LINE_MIDDLE[101:140, 81:240] = 255
-    RIGHT[106:320, 0:240] = 255
+        self.ALL[0:240, 40:280] = 255
+        self.FORWARD[10:90, 10:310] = 255
+        self.TOP[0:120, 0:320] = 255
+        self.BUTTON[121:240, 0:320] = 255
+        self.LINE_MIDDLE[101:140, 81:240] = 255
+        self.RIGHT[106:320, 0:240] = 255
 
 if __name__ == '__main__':
     print("It isn't a program")
