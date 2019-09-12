@@ -175,15 +175,17 @@ class Sonic():
         input('')
         
 class DC(IntEnum):
-        PITCH = 0
-        ROLL = 1
-        THROTTLE = 2
-        YAW = 3
-        MODE = 4 # -50 auto, 50 manual
-        AUTO = 5
-        OpticsFlow = auto()
-        Manual = auto()
-
+    PITCH = 0
+    ROLL = 1
+    THROTTLE = 2
+    YAW = 3
+    MODE = 4 # -50 auto, 50 manual
+    AUTO = 5
+    OpticsFlow = auto()
+    Manual = auto()
+class STATE(IntEnum):
+    STABLE_K = auto()
+    STABLE_R = auto()
 class Plane():
     """main program
     """
@@ -199,6 +201,11 @@ class Plane():
         self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
         self.hight = 130
         Controller(self.output_queue, 13)
+        self.pitch = 0
+        self.yaw = 0
+        self.row = 0
+        self.colors = (0, 0, 0, 0)
+        self.state = 
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
@@ -239,11 +246,12 @@ class Plane():
         self.output([(DC.THROTTLE, -50)])
 
     @verbose
-    def idle(self, sec, target=None, pTerm=3):
+    def idle(self, sec=1):
         now = time()
         if sec>0:
             while time()-now<sec:
                 self.check()
+                self.output([(DC.PITCH, self.pitch), (DC.ROW, self.row), (DC.YAW, self.yaw)])
                 sleep(LOOP_INTERNAL)
 
     def check(self, overhight=80):
@@ -270,58 +278,55 @@ class Plane():
         sleep(5)
         self.output([(DC.YAW, 0)])
 
-    def _stabilize(self, frame, color):
-        xx, yy, _ = self._find_center(frame, MASK_ALL)
-        pitch = 120-yy
-        row = xx-160
-        self.output([()])
+    # def _stabilize(self, frame, color):
+    #     xx, yy, _ = self._find_center(frame, MASK_ALL)
+    #     pitch = 120-yy
+    #     row = xx-160
+    #     self.output([()])
 
-    def _along(self, frame, color):
-        xx, _, _ = self._find_center(frame, MASK_FORWARD)
-        yaw = xx-160
-        _, yy, _ = self._find_center(frame, MASK_LINE_MIDDLE)
-        row = 120-yy
-        pass
+    # def _along(self, frame, color):
+    #     xx, _, _ = self._find_center(frame, MASK_FORWARD)
+    #     yaw = xx-160
+    #     _, yy, _ = self._find_center(frame, MASK_LINE_MIDDLE)
+    #     row = 120-yy
+    #     pass
 
-    def _around(self, frame, color):
-        _, yy, _ = self._find_center(frame, MASK_RIGHT)
-        row = 120-yy
-        _, _, w1 = self._find_center(frame, MASK_TOP)
-        _, _, w2 = self._find_center(frame, MASK_BUTTON)
-        yaw = w1-w2
-        pass
+    # def _around(self, frame, color):
+    #     _, yy, _ = self._find_center(frame, MASK_RIGHT)
+    #     row = 120-yy
+    #     _, _, w1 = self._find_center(frame, MASK_TOP)
+    #     _, _, w2 = self._find_center(frame, MASK_BUTTON)
+    #     yaw = w1-w2
+    #     pass
 
-    def _detect(self, frame):
-        _, _, ww = self._find_center(frame, MASK_ALL)
-        if ww > self.something:
-            return 1
-        else:
-            return 0
+    # def _detect(self, frame):
+    #     _, _, ww = self._find_center(frame, MASK_ALL)
+    #     if ww > self.something:
+    #         return 1
+    #     else:
+    #         return 0
 
-    def _chech_hight(self):
-        pass
-
-    def _find_center(self, frame, mask):
-        frame = cv2.bitwise_and(frame, frame, mask=mask)
-        contours, _ = cv2.findContours(frame,1,2)
-        sumX=0
-        sumY=0
-        sumW=0
-        for cnt in contours:
-            M=cv2.moments(cnt)
-            sumX += M['m10']
-            sumY += M['m01']
-            sumW += M['m00']
-            # M['M00'] weight
-            # M['m10'] xMoment
-            # M['m01'] yMoment
-        # 全畫面的黑色的中心座標
-        if sumW == 0:
-            print('Not found')
-            return -1, -1, 0
-        cX = int(sumX/sumW)
-        cY = int(sumY/sumW)
-        return cX, cY, sumW
+    # def _find_center(self, frame, mask):
+    #     frame = cv2.bitwise_and(frame, frame, mask=mask)
+    #     contours, _ = cv2.findContours(frame,1,2)
+    #     sumX=0
+    #     sumY=0
+    #     sumW=0
+    #     for cnt in contours:
+    #         M=cv2.moments(cnt)
+    #         sumX += M['m10']
+    #         sumY += M['m01']
+    #         sumW += M['m00']
+    #         # M['M00'] weight
+    #         # M['m10'] xMoment
+    #         # M['m01'] yMoment
+    #     # 全畫面的黑色的中心座標
+    #     if sumW == 0:
+    #         print('Not found')
+    #         return -1, -1, 0
+    #     cX = int(sumX/sumW)
+    #     cY = int(sumY/sumW)
+    #     return cX, cY, sumW
 
     def output(self, *arg, **kws):
         self.output_count += 1
@@ -334,7 +339,7 @@ class Plane():
 
 
 class Record(Thread):
-    def __init__(self, **kwargs):
+    def __init__(self, plane):
         Thread.__init__(self)
         # super(Record, self).__init__(**kwargs)
         self.daemon = 1
@@ -344,6 +349,7 @@ class Record(Thread):
         # self.out = out
         self.init_capture()
         self.rec_stop = False
+        self.plane = plane
         print('=' * 20 + 'Video recording...' + '=' * 20)
         self.start()
 
@@ -382,7 +388,9 @@ class Record(Thread):
     def run(self):
         while(self.cap.isOpened()):
             ret, frame = self.cap.read()
+            self.dealt(frame)
             self.read_count += 1
+            self.plane.frame = frame
             if ret == True:
                 self.out.write(frame)
                 self.write_count += 1
@@ -401,6 +409,10 @@ class Record(Thread):
                 # self.out2.release()
                 # self.out3.release()
                 break
+
+    def dealt(self, frame):
+        pass
+    self.plane.
 
     def stop_rec(self):
         # print("=OxO=")
