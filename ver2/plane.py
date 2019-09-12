@@ -6,6 +6,7 @@ from tfmini import TFMiniLidar
 from ppm import PPM
 from data import DC, STATE
 from time import sleep, time
+from pid import PID
 
 import ins
 try:
@@ -55,10 +56,9 @@ class Plane():
         self.hight = 130
         PPM(self.output_queue, 13)
         # -------------------------
-        self.pitch = 0
-        self.yaw = 0
-        self.row = 0
-        self.colors = (0, 0, 0, 0)
+        self.yaw_pid = PID(kp=0.2)
+        self.pitch_pid = PID(kp=0.2)
+        self.roll_pid = PID(kp=0.2)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
@@ -135,7 +135,10 @@ class Plane():
                 pass
         self.output_queue.put(*arg, **kws)
 
-    def update(self, noERROR,  pitch, roll, yaw):
+    def update(self, noERROR,  pitch_error, roll_error, yaw_error):
+        yaw = self.yaw_pid.update(yaw_error)
+        pitch = self.pitch_pid.update(pitch_error)
+        roll = self.roll_pid.update(roll_error)
         if noERROR:
             self.output([(DC.YAW, yaw), (DC.PITCH, pitch), (DC.ROLL, roll)])
         else:

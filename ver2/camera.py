@@ -41,11 +41,11 @@ class Record(Thread):
             print('Initialize video capture from file:', self.replay_path)
             return
 
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(2)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        time_str = '/home/pi/Desktop/Rhapsody-of-nonsense/records/' + str(int(time()))
+        time_str = str(int(time()))
         os.mkdir(time_str)
         self.out = cv2.VideoWriter(time_str + '/original' + '.avi', fourcc,
                             10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))

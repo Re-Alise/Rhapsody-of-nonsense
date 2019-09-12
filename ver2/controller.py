@@ -96,16 +96,16 @@ class Controller():
     #         return 0
 
     def _find_center(self, frame, mask, color='k'):
-        frame = cv2.GaussianBlur(frame, (13, 13), 0)
+        frame = cv2.GaussianBlur(frame, (25, 25), 0)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # _, thr = cv2.threshold(gray,78,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-        thr = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,9,2)
+        thr = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,11,2)
         # thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
         thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
         thr = cv2.bitwise_and(thr, thr, mask=mask)
         if self.debug:
             ret_thr = thr
-            cv2.imshow('Replay', cv2.hconcat([frame, cv2.cvtColor(thr, cv2.COLOR_GRAY2BGR)]))
+            cv2.imshow('Replay', cv2.hconcat([frame, cv2.cv tColor(thr, cv2.COLOR_GRAY2BGR)]))
             while not cv2.waitKey(0) & 0xFF == ord(' '):
                 sleep(0.1)
         else:
