@@ -11,6 +11,8 @@ from controller import Controller
 import os
 import ins
 import cv2
+import sys
+
 try:
     import pigpio
 except ImportError:
@@ -39,6 +41,11 @@ def beep(pi):
         buzzer_time = time()
 
 if __name__ == '__main__':
+    if len(sys.argv)>1:
+        if sys.argv[1] == '':
+            # do something
+            pass
+
     try:
         gpio = ins.get_only(pigpio.pi)
         gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
