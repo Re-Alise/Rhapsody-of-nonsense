@@ -241,12 +241,14 @@ class Plane():
     @verbose
     def idle(self, sec, target=None, pTerm=3):
         now = time()
+        self.output([(DC.ROLL, 3)])
         if sec>0:
             while time()-now<sec:
                 self.check()
                 sleep(LOOP_INTERNAL)
 
     def check(self, overhight=80):
+        return
         if self.sonic.value>overhight:
             print('Mission Fail')
             self.output([(DC.THROTTLE, -30), (DC.MODE, -50), (DC.YAW, 0), (DC.PITCH, 0), (DC.ROW, 0)])
@@ -361,8 +363,13 @@ class Record(Thread):
 
         return th0, th1, th2, th3
 
+    def change_focus(self, focus):
+        self.cap.set(cv2.CAP_PROP_FOCUS, focus)
+
     def init_capture(self):
         self.cap = cv2.VideoCapture(0)
+        # self.cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # Disable auto focus
+        # self.cap.set(cv2.CAP_PROP_FOCUS, 0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -471,11 +478,8 @@ if __name__ == '__main__':
                 # idle 70 -> 120 cm
                 plane.take_off(70, 22)
                 plane.take_off(120, 10)
+                plane.idle(5)
 
-
-                # plane.idle(target=95)
-                # plane.idle(target=110)
-                # plane.idle(target=125)
                 plane.land()
                 plane.mc(DC.Manual)
                 plane.disarm()
