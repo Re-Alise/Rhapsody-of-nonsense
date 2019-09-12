@@ -7,8 +7,17 @@ from ppm import PPM
 from data import DC, STATE
 from time import sleep, time
 
-import pigpio
 import ins
+try:
+    import pigpio
+except ImportError:
+    import mpigpio as pigpio
+else:
+    ports = serial_ports('ttyUSB')
+    if len(ports) == 0:
+        print('No serial connection detected')
+        exit()
+    TF_PORT = ports[0]
 
 DEBUG = False
 
@@ -16,12 +25,6 @@ TAKEOFF_SPEED   = 22
 LAND_SPEED      = 18
 NORMAL_SPEED    = 10
 LOOP_INTERNAL   = 0.0005
-
-ports = serial_ports('ttyUSB')
-if len(ports) == 0:
-    print('No serial connection detected')
-    exit()
-TF_PORT = ports[0]
 
 def verbose(f):
     def _f(*args, **kwargs):

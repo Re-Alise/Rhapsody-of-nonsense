@@ -1,6 +1,9 @@
 from time import time, sleep
-import pigpio
 import ins
+try:
+    import pigpio
+except ImportError:
+    print('Warning: pigio is NOT imported')
 
 @ins.only
 class Sonic():
@@ -23,13 +26,32 @@ class Sonic():
                 self.value = passTime*.017150
 
 if __name__ == '__main__':
-    # sonic = Sonic(pigpio.pi())
-    # now = time()
-    # times = 0
-    # while time()-now < 10:
-    #     times+=1
-    #     sleep(.1)
-    #     print('value:', self.value)
-    # print(times)
-    input('test finish')
+    gpio = pigpio.pi()
+    gpio.write(gpio_sonic, pigpio.LOW)
+    
+    # 建立waveform
+    wf = []
+    micros = 0
+    wf.append(pigpio.pulse(1 << self.gpio_sonic, 0, 15))
+    wf.append(pigpio.pulse(1 << self.gpio, 1 << self.gpio_sonic, 20000-15))
+
+    # 建立wf並傳送出去（嘗試同步）
+    gpio.wave_add_generic(wf)
+    wid = self.pi.wave_create()
+    gpio.wave_send_using_mode(wid, pigpio.WAVE_MODE_REPEAT_SYNC)
+
+    
+
+    sonic = Sonic(gpio)
+    now = time()
+    times = 0
+    while time()-now < 10:
+        times+=1
+        sleep(.1)
+        print('value:', self.value)
+
+    print(times)
+    print('test finish')
+    gpio.wave_tx_stop()
+    gpio.wave_delete(wid)
         

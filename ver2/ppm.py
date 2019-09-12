@@ -1,7 +1,10 @@
 from threading import Thread
 import time
-import pigpio
 import ins
+try:
+    import pigpio
+except ImportError:
+    import mpigpio as pigpio
 
 # @ins.only
 # class Controller(Thread):
