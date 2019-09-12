@@ -5,6 +5,7 @@ from plane import Plane
 from ppm import Controller
 from sonic import Sonic
 from tfmini import TFMiniLidar
+
 import pigpio
 import os
 import ins
@@ -38,7 +39,7 @@ if __name__ == '__main__':
     gpio.set_mode(PIN_BUZZER, pigpio.OUTPUT)
     plane = Plane()
     # plane.sonic.test(100)
-    mode_auto = pp.read(6)                          
+    mode_auto = gpio.read(6)                          
                                                                          
     print('init finish-------------------------------')
     while 1:
@@ -46,7 +47,7 @@ if __name__ == '__main__':
             start_signal = gpio.read(6)
             if start_signal and not mode_auto:
                 # main program
-                pass
+                print("Start!")
             else:
                 if not start_signal:
                     mode_auto = 0

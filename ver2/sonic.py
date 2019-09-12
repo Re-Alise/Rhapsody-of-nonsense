@@ -6,7 +6,7 @@ import ins
 class Sonic():
     def __init__(self, trigger_pin=19, echo_pin=26):
         print('sonic init')
-        self._pi = ins.get_only(prgpio.pi)
+        self._pi = ins.get_only(pigpio.pi)
         self._pi.callback(echo_pin, pigpio.EITHER_EDGE, self.dealt)
         self.value = 0
         self.time_rise = 0

@@ -1,4 +1,20 @@
+from queue import Queue
+
+from serialport import serial_ports
+from sonic import Sonic
+from tfmini import TFMiniLidar
+from ppm import Controller
+
+import pigpio
 import ins
+
+DEBUG = False
+
+ports = serial_ports('ttyUSB')
+if len(ports) == 0:
+    print('No serial connection detected')
+    exit()
+TF_PORT = ports[0]
 
 def verbose(f):
     def _f(*args, **kwargs):
