@@ -178,5 +178,5 @@ if __name__ == '__main__':
     except:
         print('=oxo=')
         exit()
-    c.record.start()
-    c.mission_start()
+    # c.record.start()
+    # c.mission_start()

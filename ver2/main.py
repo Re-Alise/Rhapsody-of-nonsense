@@ -42,15 +42,15 @@ def beep(pi):
 
 if __name__ == '__main__':
     if len(sys.argv)>1:
-        if sys.argv[1] == '':
-            # do something
-            pass
+        save = 0
+    else:
+        save = 1
 
     try:
         gpio = ins.get_only(pigpio.pi)
         gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
         plane = Plane()
-        controller = Controller(debug=True)
+        controller = Controller(debug=True, save=save)
         mode_auto = gpio.read(PIN.STATE)      
     except:
         print('=OxO=')      
@@ -77,6 +77,7 @@ if __name__ == '__main__':
                 plane.disarm()
                 controller.stop()
                 print('mission completed')
+                break
             else:
                 if not start_signal:
                     mode_auto = 0

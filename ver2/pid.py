@@ -13,8 +13,8 @@ class PID():
         self.current_time = time()
         self.last_time = self.current_time
         self.last_error = 0
-        self.min = -50
-        self.max = 50
+        self.min = -50*8
+        self.max = 50*8
         self.ITerm = 0
 
     def update(self, error=None):

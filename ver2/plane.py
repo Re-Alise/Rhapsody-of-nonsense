@@ -23,9 +23,9 @@ else:
 
 DEBUG = False
 
-TAKEOFF_SPEED   = 22
-LAND_SPEED      = 18
-NORMAL_SPEED    = 10
+TAKEOFF_SPEED   = 22*8
+LAND_SPEED      = 18*8
+NORMAL_SPEED    = 10*8
 LOOP_INTERNAL   = 0.0005
 
 def verbose(f):
@@ -61,15 +61,15 @@ class Plane():
         PPM(self.output_queue, 13)
         # -------------------------
         self.yaw_pid = PID(kp=0.2)
-        self.pitch_pid = PID(kp=0.2)
-        self.roll_pid = PID(kp=0.1)
+        self.pitch_pid = PID(kp=1.6, kd=0.01)
+        self.roll_pid = PID(kp=0.8, kd=0.01)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
     def arm(self):
         self.reset()
         sleep(0.1)
-        self.output([(DC.THROTTLE, -50), (DC.YAW, 50)]) # set throttle to lowest, yaw to right
+        self.output([(DC.THROTTLE, -400), (DC.YAW, 400)]) # set throttle to lowest, yaw to right
         sleep(2)
         self.output([(DC.THROTTLE, 0)])
         sleep(1)
@@ -81,14 +81,14 @@ class Plane():
     @verbose
     def mc(self, mode):
         if mode == DC.OpticsFlow:
-            self.output([(DC.MODE, -50)])
+            self.output([(DC.MODE, -400)])
         else:
-            self.output([(DC.MODE, 50)])
+            self.output([(DC.MODE, 400)])
         # 保證切換完畢
         sleep(0.04)
 
     @verbose
-    def take_off(self, hight, speed=10):
+    def take_off(self, hight, speed=10*8):
         """依靠超音波 去起飛
         """
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, speed), (DC.YAW, 0)])
@@ -100,7 +100,7 @@ class Plane():
     def throttle_test(self):
         self.output([(DC.THROTTLE, 0)])
         sleep(0.1)
-        self.output([(DC.THROTTLE, -50)])
+        self.output([(DC.THROTTLE, -400)])
 
     @verbose
     def idle(self, sec=1):
@@ -127,7 +127,7 @@ class Plane():
 
     @verbose
     def disarm(self):
-        self.output([(DC.THROTTLE, -50), (DC.YAW, -50)]) # set throttle to lowest, yaw to lift
+        self.output([(DC.THROTTLE, -400), (DC.YAW, -400)]) # set throttle to lowest, yaw to lift
         sleep(5)
         self.output([(DC.YAW, 0)])
 
@@ -153,7 +153,7 @@ class Plane():
 
     def fail(self, souce='unknow', msg=''):
         print('Mission Fail')
-        self.output([(DC.THROTTLE, -30), (DC.MODE, -50), (DC.YAW, 0), (DC.PITCH, 0), (DC.ROLL, 0)])
+        self.output([(DC.THROTTLE, -30*8), (DC.MODE, -400), (DC.YAW, 0), (DC.PITCH, 0), (DC.ROLL, 0)])
         while 1:
             print(souce, 'get ERROR!')
             print('Mission Fail!', msg)
