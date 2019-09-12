@@ -32,9 +32,9 @@ kernel = np.ones((3,3),np.uint8)
 
 @ins.only
 class Controller():
-    def __init__(self, debug=0, replay_path=None):
+    def __init__(self, debug=0, replay_path=None, save=1):
         self.frame_queue = Queue(1)
-        self.record = Record(self.frame_queue, replay_path=replay_path)
+        self.record = Record(self.frame_queue, replay_path=replay_path, save=save)
         self.replay_path = replay_path
         self.frame_new = None
         self.debug = debug

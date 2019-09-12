@@ -11,9 +11,10 @@ IMAGE_SIZE = (320, 240)
 
 @ins.only
 class Record(Thread):
-    def __init__(self, frame_queue, replay_path=None):
+    def __init__(self, frame_queue, replay_path=None, save=1):
         Thread.__init__(self)
         self.daemon = 1
+        self.save = save
         self.read_count = 0
         self.write_count = 0
         self.replay_path = replay_path
@@ -36,18 +37,22 @@ class Record(Thread):
         return th0, th1, th2, th3
 
     def init_capture(self):
-        if self.replay_path:
+        if self.replay_path and len(self.replay_path)>1:
             self.cap = cv2.VideoCapture(self.replay_path)
             print('Initialize video capture from file:', self.replay_path)
             return
-
-        self.cap = cv2.VideoCapture(0)
+        if self.replay_path:
+            cameraNumber = int(self.replay_path)
+        else:
+            cameraNumber = 0
+        self.cap = cv2.VideoCapture(cameraNumber)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        time_str = '/home/pi/Desktop/Rhapsody-of-nonsense/records/' + str(int(time()))
-        os.mkdir(time_str)
-        self.out = cv2.VideoWriter(time_str + '/original' + '.avi', fourcc,
+        if self.save:
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            time_str = '/home/pi/Desktop/Rhapsody-of-nonsense/records/' + str(int(time()))
+            os.mkdir(time_str)
+            self.out = cv2.VideoWriter(time_str + '/original' + '.avi', fourcc,
                             10.0, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
         # self.out0 = cv2.VideoWriter(time_str + '/gray' + '.avi', fourcc,
         #                     10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
@@ -63,6 +68,8 @@ class Record(Thread):
             ret, frame = self.cap.read()
             if not self.replay_path:
                 frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            if not len(self.replay_path) > 1:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
             self.read_count += 1
             while self.output_queue.full():
                 if self.replay_path:
@@ -74,7 +81,8 @@ class Record(Thread):
                         pass
             self.output_queue.put(frame)
             if ret == True and not self.replay_path:
-                self.out.write(frame)
+                if self.save:
+                    self.out.write(frame)
                 self.write_count += 1
                 # th0, th1, th2, th3 = self.threshold(frame)
                 # self.out0.write(cv2.cvtColor(th0, cv2.COLOR_GRAY2BGR))
@@ -85,7 +93,8 @@ class Record(Thread):
 
             if self.rec_stop:
                 self.cap.release()
-                self.out.release()
+                if self.save:
+                    self.out.release()
                 # self.out0.release()
                 # self.out1.release()
                 # self.out2.release()
