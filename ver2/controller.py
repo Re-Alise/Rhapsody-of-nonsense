@@ -1,7 +1,7 @@
 from data import MASK
 from queue import Queue
 from camera import Record
-# from plane import Plane
+from plane import Plane
 from time import time, sleep
 
 import ins, cv2
