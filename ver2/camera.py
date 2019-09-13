@@ -4,6 +4,7 @@ from time import time, sleep
 import cv2
 import ins
 import os
+import numpy as np
 
 ORIGINAL_IMAGE_SIZE = (640, 480)
 IMAGE_SIZE = (320, 240)
@@ -54,7 +55,7 @@ class Record(Thread):
     def run(self):
         while(self.cap.isOpened()):
             ret, frame = self.cap.read()
-            self.dealt(frame)
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
             self.read_count += 1
             while self.output_queue.full():
                 try:
@@ -80,9 +81,6 @@ class Record(Thread):
                 # self.out2.release()
                 # self.out3.release()
                 break
-
-    def dealt(self, frame):
-        pass
 
     def stop_rec(self):
         # print("=OxO=")

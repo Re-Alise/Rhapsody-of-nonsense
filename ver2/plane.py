@@ -3,7 +3,7 @@ from queue import Queue
 from serialport import serial_ports
 from sonic import Sonic
 from tfmini import TFMiniLidar
-from ppm import Controller
+from ppm import PPM
 from data import DC, STATE
 from time import sleep, time
 
@@ -50,7 +50,7 @@ class Plane():
         self.sonic = Sonic()
         self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
         self.hight = 130
-        Controller(self.output_queue, 13)
+        PPM(self.output_queue, 13)
         # -------------------------
         self.pitch = 0
         self.yaw = 0

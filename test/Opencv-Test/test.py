@@ -70,35 +70,35 @@ if __name__ == "__main__":
         # get a frame
         # 我用筆電測試約0.03s能取出一張圖，時間沒到會卡在這，有點像是通訊在等對方丟值過來的感覺
         ret, ori = cap.read()
-        now = time()
-        frame = cv2.resize(ori, IMAGE_SIZE)
-        frame = cv2.GaussianBlur(frame, (9, 9), 0)
-        # 處理
-        r = frame[:,:,2]
-        g = frame[:,:,1]
-        b = frame[:,:,0]
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        if target == 0:
-            img = b-gray
-        elif target == 1:
-            img = g-gray
-        elif target == 2:
-            img = r-gray
-        elif target == 3:
-            img = gray
+        # now = time()
+        # frame = cv2.resize(ori, IMAGE_SIZE)
+        # frame = cv2.GaussianBlur(frame, (9, 9), 0)
+        # # 處理
+        # r = frame[:,:,2]
+        # g = frame[:,:,1]
+        # b = frame[:,:,0]
+        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # if target == 0:
+        #     img = b-gray
+        # elif target == 1:
+        #     img = g-gray
+        # elif target == 2:
+        #     img = r-gray
+        # elif target == 3:
+        #     img = gray
         # # 二值化(需要非常穩定)
         # retval, thresh = cv2.threshold(blurred, 90, 255, cv2.THRESH_BINARY_INV)
         # # 找輪廓
         # xx, yy, ww = find_center(thresh, MASK_ALL)
-        ret3,th1 = cv2.threshold(r-gray+100,150,255,cv2.THRESH_BINARY)
-        ret3,th2 = cv2.threshold(g-gray+100,120,255,cv2.THRESH_BINARY)
-        ret3,th3 = cv2.threshold(b-gray+100,100,255,cv2.THRESH_BINARY)
-        ret3,th0 = cv2.threshold(gray,100,255,cv2.THRESH_BINARY)
+        # ret3,th1 = cv2.threshold(r-gray+100,150,255,cv2.THRESH_BINARY)
+        # ret3,th2 = cv2.threshold(g-gray+100,120,255,cv2.THRESH_BINARY)
+        # ret3,th3 = cv2.threshold(b-gray+100,100,255,cv2.THRESH_BINARY)
+        # ret3,th0 = cv2.threshold(gray,100,255,cv2.THRESH_BINARY)
         # show image
         # PS.他顯示的白色是黑色，黑色是白色
         # pp.append(time()-now)
-        ans = np.hstack((th1, th2, th3, th0))
-        cv2.imshow("capture", ans)
+        # ans = np.hstack((th1, th2, th3, th0))
+        cv2.imshow("capture", ori)
         # print(xx-160)
         if cv2.waitKey(1) & 0xFF == ord(' '):
             break

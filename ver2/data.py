@@ -22,7 +22,7 @@ class PIN(IntEnum):
     BUZZER = 11
     STATE = 6
 
-class COLOR(Intenum):
+class COLOR(IntEnum):
     K = 3
     R = 2
     G = 1
@@ -38,7 +38,7 @@ class MASK():
     LINE_MIDDLE = ORIGIN
     RIGHT = ORIGIN
 
-    ALL[0:240, 0:320] = 255
+    ALL[0:240, 40:280] = 255
     FORWARD[10:90, 10:310] = 255
     TOP[0:120, 0:320] = 255
     BUTTON[121:240, 0:320] = 255
