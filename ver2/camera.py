@@ -1,19 +1,24 @@
+from threading import Thread
+from time import time, sleep
 
+import cv2
+import ins
+import os
+
+ORIGINAL_IMAGE_SIZE = (640, 480)
+IMAGE_SIZE = (320, 240)
+
+@ins.only
 class Record(Thread):
-    def __init__(self, plane):
+    def __init__(self, frame_queue):
         Thread.__init__(self)
-        # super(Record, self).__init__(**kwargs)
         self.daemon = 1
         self.read_count = 0
         self.write_count = 0
-        # self.cap = cap
-        # self.out = out
         self.init_capture()
         self.rec_stop = False
-        self.plane = plane
         print('=' * 20 + 'Video recording...' + '=' * 20)
-        self.start()
-
+        self.output_queue = frame_queue
 
     def threshold(self, frame):
         r = frame[:,:,2]
@@ -51,7 +56,12 @@ class Record(Thread):
             ret, frame = self.cap.read()
             self.dealt(frame)
             self.read_count += 1
-            self.plane.frame = frame
+            while self.output_queue.full():
+                try:
+                    self.output_queue.get(timeout=0.00001)
+                except:
+                    pass
+            self.output_queue.put(frame)
             if ret == True:
                 self.out.write(frame)
                 self.write_count += 1
@@ -73,7 +83,6 @@ class Record(Thread):
 
     def dealt(self, frame):
         pass
-    self.plane.
 
     def stop_rec(self):
         # print("=OxO=")

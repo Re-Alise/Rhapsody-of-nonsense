@@ -1,45 +1,46 @@
+from threading import Thread
 import time
 import pigpio
-from threading import Thread
 import ins
 
-class Controller(Thread):
-    """PPM output controller powered by pigpio
+# @ins.only
+# class Controller(Thread):
+#     """PPM output controller powered by pigpio
 
-    **Start the pigpio daemon before running: sudo pigpiod**
+#     **Start the pigpio daemon before running: sudo pigpiod**
 
-    Arguments:
-    input_queue -- Queue to trans
-    gpio -- Number of output pin, equivalent to GPIO.BCM (GPIOX)
-    channel -- Number of PPM channel (8 default)
-    frame_ms -- Time interval between frames in microsecond (5 minimum, 20 default)
+#     Arguments:
+#     input_queue -- Queue to trans
+#     gpio -- Number of output pin, equivalent to GPIO.BCM (GPIOX)
+#     channel -- Number of PPM channel (8 default)
+#     frame_ms -- Time interval between frames in microsecond (5 minimum, 20 default)
 
-    Source: https://www.raspberrypi.org/forums/viewtopic.php?t=219531
-    """
+#     Source: https://www.raspberrypi.org/forums/viewtopic.php?t=219531
+#     """
 
-    def __init__(self, input_queue, gpio, channels=8, frame_ms=20, gpio_sonic=19):
-        Thread.__init__(self)
-        self._input_queue = input_queue
-        self._gpio = gpio
-        self._channels = channels
-        self._pi = ins.get_only(pigpio.pi)
+#     def __init__(self, input_queue, gpio, channels=8, frame_ms=20, gpio_sonic=19):
+#         Thread.__init__(self)
+#         self._input_queue = input_queue
+#         self._gpio = gpio
+#         self._channels = channels
+#         self._pi = ins.get_only(pigpio.pi)
 
-        if not self._pi.connected:
-            print('Error: pigpio is not initialized')
-            exit(0)
+#         if not self._pi.connected:
+#             print('Error: pigpio is not initialized')
+#             exit(0)
 
-        self._ppm = PPM(self._pi, self._gpio, channels=channels, frame_ms=frame_ms, gpio_sonic=gpio_sonic)
-        # Default output signal for stablizing
-        self._ppm.update_channels([1500, 1500, 1100, 1500, 1500, 1500, 1500, 1500])
-        self.daemon = 1
-        self.start()
+#         self._ppm = PPM(self._pi, self._gpio, channels=channels, frame_ms=frame_ms, gpio_sonic=gpio_sonic)
+#         # Default output signal for stablizing
+#         self._ppm.update_channels([1500, 1500, 1100, 1500, 1500, 1500, 1500, 1500])
+#         self.daemon = 1
+#         self.start()
 
-    def run(self):
-        while 1:
-            signals = self._input_queue.get()
-            self._ppm.update_assign(signals)
-
-class PPM:
+#     def run(self):
+#         while 1:
+#             signals = self._input_queue.get()
+#             self._ppm.update_assign(signals)
+@ins.only
+class PPM(Thread):
     """8 channel PPM output powered by pigpio
 
     **Start the pigpio daemon before running: sudo pigpiod**
@@ -55,9 +56,11 @@ class PPM:
     GAP = 400
     WAVES = 3
 
-    def __init__(self, pi, gpio, channels=8, frame_ms=20, gpio_sonic=19):
+    def __init__(self, input_queue, gpio, channels=8, frame_ms=20, gpio_sonic=19):
+        Thread.__init__(self)
         self.adjust = 1
-        self.pi = pi
+        self._input_queue = input_queue
+        self.pi = ins.get_only(pigpio.pi)
         self.gpio = gpio
         self.gpio_sonic = gpio_sonic
 
@@ -89,6 +92,15 @@ class PPM:
         pi.write(gpio_sonic, pigpio.LOW)
 
         self._update_time = time.time()
+
+        self.update_channels([1500, 1500, 1100, 1500, 1500, 1500, 1500, 1500])
+        self.daemon = 1
+        self.start()
+
+    def run(self):
+        while 1:
+            signals = self._input_queue.get()
+            self.update_assign(signals)
 
     def _update(self):
         # 建立waveform

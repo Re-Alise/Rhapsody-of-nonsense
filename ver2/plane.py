@@ -4,11 +4,18 @@ from serialport import serial_ports
 from sonic import Sonic
 from tfmini import TFMiniLidar
 from ppm import Controller
+from data import DC, STATE
+from time import sleep, time
 
 import pigpio
 import ins
 
 DEBUG = False
+
+TAKEOFF_SPEED   = 22
+LAND_SPEED      = 18
+NORMAL_SPEED    = 10
+LOOP_INTERNAL   = 0.0005
 
 ports = serial_ports('ttyUSB')
 if len(ports) == 0:
@@ -28,6 +35,7 @@ def p(*arg, **kws):
     if DEBUG:
         print(*arg, **kws)
 
+@ins.only
 class Plane():
     """main program
     """
@@ -39,10 +47,11 @@ class Plane():
         # self.cap = cv2.VideoCaptures(0)
         self._pi = ins.get_only(pigpio.pi)
         self._pi.wave_tx_stop()
-        self.sonic = Sonic(self._pi)
+        self.sonic = Sonic()
         self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
         self.hight = 130
         Controller(self.output_queue, 13)
+        # -------------------------
         self.pitch = 0
         self.yaw = 0
         self.row = 0
@@ -92,17 +101,12 @@ class Plane():
         if sec>0:
             while time()-now<sec:
                 self.check()
-                self.output([(DC.PITCH, self.pitch), (DC.ROW, self.row), (DC.YAW, self.yaw)])
+                self.output([(DC.PITCH, self.pitch), (DC.ROLL, self.row), (DC.YAW, self.yaw)])
                 sleep(LOOP_INTERNAL)
 
     def check(self, overhight=80):
         if self.sonic.value>overhight:
-            print('Mission Fail')
-            self.output([(DC.THROTTLE, -30), (DC.MODE, -50), (DC.YAW, 0), (DC.PITCH, 0), (DC.ROW, 0)])
-            while 1:
-                print('Mission Fail')
-                sleep(0.1)
-
+            self.fail('plane.Plane.check', 'over hight: '+str(overhight))
 
     @verbose
     def land(self):
@@ -119,56 +123,6 @@ class Plane():
         sleep(5)
         self.output([(DC.YAW, 0)])
 
-    # def _stabilize(self, frame, color):
-    #     xx, yy, _ = self._find_center(frame, MASK_ALL)
-    #     pitch = 120-yy
-    #     row = xx-160
-    #     self.output([()])
-
-    # def _along(self, frame, color):
-    #     xx, _, _ = self._find_center(frame, MASK_FORWARD)
-    #     yaw = xx-160
-    #     _, yy, _ = self._find_center(frame, MASK_LINE_MIDDLE)
-    #     row = 120-yy
-    #     pass
-
-    # def _around(self, frame, color):
-    #     _, yy, _ = self._find_center(frame, MASK_RIGHT)
-    #     row = 120-yy
-    #     _, _, w1 = self._find_center(frame, MASK_TOP)
-    #     _, _, w2 = self._find_center(frame, MASK_BUTTON)
-    #     yaw = w1-w2
-    #     pass
-
-    # def _detect(self, frame):
-    #     _, _, ww = self._find_center(frame, MASK_ALL)
-    #     if ww > self.something:
-    #         return 1
-    #     else:
-    #         return 0
-
-    # def _find_center(self, frame, mask):
-    #     frame = cv2.bitwise_and(frame, frame, mask=mask)
-    #     contours, _ = cv2.findContours(frame,1,2)
-    #     sumX=0
-    #     sumY=0
-    #     sumW=0
-    #     for cnt in contours:
-    #         M=cv2.moments(cnt)
-    #         sumX += M['m10']
-    #         sumY += M['m01']
-    #         sumW += M['m00']
-    #         # M['M00'] weight
-    #         # M['m10'] xMoment
-    #         # M['m01'] yMoment
-    #     # 全畫面的黑色的中心座標
-    #     if sumW == 0:
-    #         print('Not found')
-    #         return -1, -1, 0
-    #     cX = int(sumX/sumW)
-    #     cY = int(sumY/sumW)
-    #     return cX, cY, sumW
-
     def output(self, *arg, **kws):
         self.output_count += 1
         while self.output_queue.full():
@@ -177,3 +131,17 @@ class Plane():
             except:
                 pass
         self.output_queue.put(*arg, **kws)
+
+    def update(self, noERROR,  pitch, roll, yaw):
+        if noERROR:
+            self.output([(DC.YAW, yaw), (DC.PITCH, pitch), (DC.ROLL, roll)])
+        else:
+            self.fail('plane.Plane.update', 'recive error flag')
+
+    def fail(self, souce='unknow', msg=''):
+        print('Mission Fail')
+        self.output([(DC.THROTTLE, -30), (DC.MODE, -50), (DC.YAW, 0), (DC.PITCH, 0), (DC.ROLL, 0)])
+        while 1:
+            print(souce, 'get ERROR!')
+            print('Mission Fail!', msg)
+            sleep(0.5)
