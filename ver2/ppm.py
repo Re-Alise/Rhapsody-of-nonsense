@@ -88,8 +88,8 @@ class PPM(Thread):
         self._wid = [None]*self.WAVES
         self._next_wid = 0
 
-        pi.write(gpio, pigpio.LOW)
-        pi.write(gpio_sonic, pigpio.LOW)
+        self.pi.write(gpio, pigpio.LOW)
+        self.pi.write(gpio_sonic, pigpio.LOW)
 
         self._update_time = time.time()
 

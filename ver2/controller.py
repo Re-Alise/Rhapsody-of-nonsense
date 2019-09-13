@@ -48,7 +48,7 @@ class Controller():
         self.frame_new = self.frame_queue.get()
         # print('get frame')
 
-    def stable(self, sec = 10):
+    def stable(self, sec=10):
         now = time()
         while time()-now<sec:
             self.get_frame()

@@ -13,7 +13,6 @@ STRENTGTH_H = 5
 
 DEBUG = False
 
-@ins.only
 def measure(s: Serial, loop=False):
     count = 0
     data = []
@@ -74,7 +73,7 @@ def measure(s: Serial, loop=False):
                 data.append(b)
                 count += 1
 
-
+@ins.only
 class TFMiniLidar(Thread):
     read = False
     port = None

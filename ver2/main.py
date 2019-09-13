@@ -6,6 +6,7 @@ from sonic import Sonic
 from tfmini import TFMiniLidar
 from data import PIN, DC, MASK
 from camera import Record
+from controller import Controller
 
 import pigpio
 import os
@@ -38,8 +39,7 @@ if __name__ == '__main__':
     gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
     plane = Plane()
     controller = Controller()
-    mode_auto = gpio.read(PIN.STATE)                          
-                                                                         
+    mode_auto = gpio.read(PIN.STATE)                                   
     print('init finish-------------------------------')
     while 1:
         try:
