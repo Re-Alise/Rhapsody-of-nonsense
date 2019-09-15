@@ -14,7 +14,7 @@ import cv2
 try:
     import pigpio
 except ImportError:
-    print('Warning: pigio is NOT imported')
+    import mpigpio as pigpio
 
 
 BUZZER_INTERVAL_L = 0.5

@@ -11,7 +11,7 @@ import ins
 try:
     import pigpio
 except ImportError:
-    print('Warning: pigio is NOT imported')
+    import mpigpio as pigpio
 else:
     ports = serial_ports('ttyUSB')
     if len(ports) == 0:
