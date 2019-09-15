@@ -2,8 +2,8 @@ from enum import IntEnum, auto
 import numpy as np
 
 class DC(IntEnum):
-    PITCH = 0
-    ROLL = 1
+    PITCH = 1
+    ROLL = 0
     THROTTLE = 2
     YAW = 3
     MODE = 4 # -50 auto, 50 manual

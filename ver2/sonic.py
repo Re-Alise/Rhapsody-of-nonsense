@@ -1,6 +1,9 @@
 from time import time, sleep
-import pigpio
 import ins
+try:
+    import pigpio
+except ImportError:
+    print('Warning: pigio is NOT imported')
 
 @ins.only
 class Sonic():

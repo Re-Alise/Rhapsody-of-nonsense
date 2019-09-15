@@ -11,11 +11,12 @@ IMAGE_SIZE = (320, 240)
 
 @ins.only
 class Record(Thread):
-    def __init__(self, frame_queue):
+    def __init__(self, frame_queue, replay_path=None):
         Thread.__init__(self)
         self.daemon = 1
         self.read_count = 0
         self.write_count = 0
+        self.replay_path = replay_path
         self.init_capture()
         self.rec_stop = False
         print('=' * 20 + 'Video recording...' + '=' * 20)
@@ -35,6 +36,11 @@ class Record(Thread):
         return th0, th1, th2, th3
 
     def init_capture(self):
+        if self.replay_path:
+            self.cap = cv2.VideoCapture(self.replay_path)
+            print('Initialize video capture from file:', self.replay_path)
+            return
+
         self.cap = cv2.VideoCapture(0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
@@ -55,15 +61,19 @@ class Record(Thread):
     def run(self):
         while(self.cap.isOpened()):
             ret, frame = self.cap.read()
-            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            if not self.replay_path:
+                frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
             self.read_count += 1
             while self.output_queue.full():
-                try:
-                    self.output_queue.get(timeout=0.00001)
-                except:
-                    pass
+                if self.replay_path:
+                    sleep(0.1)
+                else:
+                    try:
+                        self.output_queue.get(timeout=0.00001)
+                    except:
+                        pass
             self.output_queue.put(frame)
-            if ret == True:
+            if ret == True and not self.replay_path:
                 self.out.write(frame)
                 self.write_count += 1
                 # th0, th1, th2, th3 = self.threshold(frame)
