@@ -30,9 +30,10 @@ MASK_RIGHT[106:320, 0:240] = 255
 
 @ins.only
 class Controller():
-    def __init__(self, debug=0):
+    def __init__(self, debug=0, replay_path=None):
         self.frame_queue = Queue(1)
-        self.record = Record(self.frame_queue)
+        self.record = Record(self.frame_queue, replay_path=replay_path)
+        self.replay_path = replay_path
         self.frame_new = None
         self.debug = debug
         if not debug:
@@ -40,7 +41,7 @@ class Controller():
 
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
-        self.stable()
+        self.stable(100)
         self.stop()
         pass
 
@@ -55,7 +56,8 @@ class Controller():
             # check break condition
             ret, pitch, roll, yaw = self._stabilize()
             if self.debug:
-                print(ret, pitch, roll, yaw, sep='\t')
+                print('ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
+                # print(ret, pitch, roll, yaw, sep='\t')
                 continue
             self.plane.update(ret, pitch, roll, yaw)
 
@@ -93,6 +95,11 @@ class Controller():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         _, thr = cv2.threshold(gray,78,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
         thr = cv2.bitwise_and(thr, thr, mask=mask)
+        if self.replay_path:
+            cv2.imshow('Replay', thr)
+            # cv2.waitKey(0)
+            while not cv2.waitKey(0) & 0xFF == ord(' '):
+                sleep(0.1)
         # cv2.imshow('123', thr)
         # cv2.waitKey(1)
         contours, _ = cv2.findContours(thr,1,2)
@@ -110,7 +117,8 @@ class Controller():
         # 全畫面的黑色的中心座標
         if sumW == 0:
             print('Not found')
-            return -1, -1, 0
+            # return -1, -1, 0
+            return 160, 120, 0
         cX = sumX/sumW
         cY = sumY/sumW
         return cX, cY, sumW

@@ -8,10 +8,13 @@ from data import PIN, DC, MASK
 from camera import Record
 from controller import Controller
 
-import pigpio
 import os
 import ins
 import cv2
+try:
+    import pigpio
+except ImportError:
+    print('Warning: pigio is NOT imported')
 
 
 BUZZER_INTERVAL_L = 0.5
