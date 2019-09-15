@@ -28,6 +28,8 @@ MASK_LINE_MIDDLE[101:140, 81:240] = 255
 MASK_RIGHT = np.zeros([240, 320],dtype=np.uint8)
 MASK_RIGHT[106:320, 0:240] = 255
 
+kernel = np.ones((7,7),np.uint8)  
+
 @ins.only
 class Controller():
     def __init__(self, debug=0, replay_path=None):
@@ -63,9 +65,12 @@ class Controller():
 
 
     def _stabilize(self, color='k'):
-        xx, yy, _ = self._find_center(self.frame_new, np.transpose(MASK_ALL))
+        xx, yy, _, thr = self._find_center(self.frame_new, np.transpose(MASK_ALL))
         pitch = (120-yy)//para
         roll = (xx-160)//para
+        if self.debug:
+            # show img
+            pass
         return 1, pitch, roll, 0
 
     # def _along(self, frame, color):
@@ -91,23 +96,28 @@ class Controller():
     #         return 0
 
     def _find_center(self, frame, mask, color='k'):
-        frame = cv2.GaussianBlur(frame, (9, 9), 0)
+        frame = cv2.GaussianBlur(frame, (13, 13), 0)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        _, thr = cv2.threshold(gray,78,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+        # _, thr = cv2.threshold(gray,78,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+        thr = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,9,2)
+        # thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
+        thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
         thr = cv2.bitwise_and(thr, thr, mask=mask)
-        if self.replay_path:
+        if self.debug:
+            ret_thr = thr
             cv2.imshow('Replay', thr)
-            # cv2.waitKey(0)
             while not cv2.waitKey(0) & 0xFF == ord(' '):
                 sleep(0.1)
-        # cv2.imshow('123', thr)
-        # cv2.waitKey(1)
+        else:
+            ret_thr = None
         contours, _ = cv2.findContours(thr,1,2)
         sumX=0
         sumY=0
         sumW=0
         for cnt in contours:
             M=cv2.moments(cnt)
+            if M['m00']<50:
+                continue
             sumX += M['m10']
             sumY += M['m01']
             sumW += M['m00']
@@ -118,11 +128,17 @@ class Controller():
         if sumW == 0:
             print('Not found')
             # return -1, -1, 0
-            return 160, 120, 0
-        cX = sumX/sumW
+            return 160, 120, 0, ret_thr
+        cX = sumX/sumW  
         cY = sumY/sumW
-        return cX, cY, sumW
+        return cX, cY, sumW, ret_thr
 
+        # if self.replay_path:
+
+        #     cv2.imshow('Replay', thr)
+        #     # cv2.waitKey(0)
+        #     while not cv2.waitKey(0) & 0xFF == ord(' '):
+        #         sleep(0.1)
 
     def stop(self):
         self.record.stop_rec()
