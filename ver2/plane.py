@@ -103,8 +103,9 @@ class Plane():
         now = time()
         if sec>0:
             while time()-now<sec:
-                self.check()
-                self.output([(DC.PITCH, self.pitch), (DC.ROLL, self.row), (DC.YAW, self.yaw)])
+                # self.check()
+                # self.output([(DC.PITCH, self.pitch), (DC.ROLL, self.row), (DC.YAW, self.yaw)])
+                self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.YAW, 0)])
                 sleep(LOOP_INTERNAL)
 
     def check(self, overhight=80):

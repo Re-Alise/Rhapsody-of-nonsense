@@ -41,7 +41,7 @@ if __name__ == '__main__':
     gpio = ins.get_only(pigpio.pi)
     gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
     plane = Plane()
-    controller = Controller()
+    controller = Controller(debug=True)
     mode_auto = gpio.read(PIN.STATE)                                   
     print('init finish-------------------------------')
     while 1:

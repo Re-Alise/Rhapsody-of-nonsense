@@ -43,7 +43,7 @@ class Controller():
 
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
-        self.stable(100)
+        self.stable(30)
         self.stop()
         pass
 
@@ -131,15 +131,16 @@ class Controller():
 
         if self.debug:
             ret_thr = thr
-            edited = np.copy(thr)
-            edited = cv2.cvtColor(edited, cv2.COLOR_GRAY2BGR)
-            cv2.circle(edited, (int(cX), int(cY)), 5, (178, 0, 192), -1)
-            cv2.putText(edited, 'cX: {}'.format(cX), (0, edited.shape[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-            cv2.putText(edited, 'cY: {}'.format(cY), (0, edited.shape[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-            cv2.putText(edited, 'sumW: {}'.format(sumW), (0, edited.shape[1]+40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-            cv2.imshow('Replay', cv2.hconcat([frame, edited]))
-            while not cv2.waitKey(0) & 0xFF == ord(' '):
-                sleep(0.1)
+            if self.replay_path:
+                edited = np.copy(thr)
+                edited = cv2.cvtColor(edited, cv2.COLOR_GRAY2BGR)
+                cv2.circle(edited, (int(cX), int(cY)), 5, (178, 0, 192), -1)
+                cv2.putText(edited, 'cX: {}'.format(cX), (0, edited.shape[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+                cv2.putText(edited, 'cY: {}'.format(cY), (0, edited.shape[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+                cv2.putText(edited, 'sumW: {}'.format(sumW), (0, edited.shape[1]+40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+                cv2.imshow('Replay', cv2.hconcat([frame, edited]))
+                while not cv2.waitKey(0) & 0xFF == ord(' '):
+                    sleep(0.1)
         else:
             ret_thr = None
         return cX, cY, sumW, ret_thr
