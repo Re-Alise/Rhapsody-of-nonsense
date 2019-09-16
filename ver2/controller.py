@@ -105,7 +105,7 @@ class Controller():
         thr = cv2.bitwise_and(thr, thr, mask=mask)
         if self.debug:
             ret_thr = thr
-            cv2.imshow('Replay', thr)
+            cv2.imshow('Replay', cv2.hconcat([frame, cv2.cvtColor(thr, cv2.COLOR_GRAY2BGR)]))
             while not cv2.waitKey(0) & 0xFF == ord(' '):
                 sleep(0.1)
         else:
