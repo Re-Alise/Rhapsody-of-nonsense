@@ -50,10 +50,13 @@ class Plane():
         self.output_count = 0
         self.output_queue = Queue(1)
         # self.cap = cv2.VideoCaptures(0)
-        self._pi = ins.get_only(pigpio.pi)
-        self._pi.wave_tx_stop()
-        self.sonic = Sonic()
-        self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
+        try:
+            self._pi = ins.get_only(pigpio.pi)
+            self._pi.wave_tx_stop()
+            self.sonic = Sonic()
+            self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
+        except:
+            raise IOError
         self.hight = 130
         PPM(self.output_queue, 13)
         # -------------------------

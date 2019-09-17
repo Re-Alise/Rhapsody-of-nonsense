@@ -42,7 +42,11 @@ class Controller():
         self.c = 3.5
         # if not debug:
         if not replay_path:
-            self.plane = Plane()
+            try:
+                self.plane = Plane()
+            except:
+                print('owo')
+                raise IOError
 
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
@@ -169,6 +173,10 @@ class Controller():
     pass
 
 if __name__ == '__main__':
-    c = Controller(1)
+    try:
+        c = Controller(1)
+    except:
+        print('=oxo=')
+        exit()
     c.record.start()
     c.mission_start()

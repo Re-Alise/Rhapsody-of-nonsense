@@ -39,11 +39,15 @@ def beep(pi):
         buzzer_time = time()
 
 if __name__ == '__main__':
-    gpio = ins.get_only(pigpio.pi)
-    gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
-    plane = Plane()
-    controller = Controller(debug=True)
-    mode_auto = gpio.read(PIN.STATE)                                   
+    try:
+        gpio = ins.get_only(pigpio.pi)
+        gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
+        plane = Plane()
+        controller = Controller(debug=True)
+        mode_auto = gpio.read(PIN.STATE)      
+    except:
+        print('=OxO=')      
+        exit()                       
     print('init finish-------------------------------')
     while 1:
         try:
