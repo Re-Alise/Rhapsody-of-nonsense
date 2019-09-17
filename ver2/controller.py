@@ -41,12 +41,17 @@ class Controller():
         self.last_center = (120, 160)
         self.c = 3.5
         # if not debug:
-        self.plane = Plane()
+        if not replay_path:
+            self.plane = Plane()
 
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
-        self.stable(20)
-        self.stop()
+        if self.replay_path:
+            self.stable(100)
+            self.stop()
+        else:
+            self.stable(20)
+            self.stop()
         pass
 
     def get_frame(self):
@@ -62,7 +67,8 @@ class Controller():
             if self.debug:
                 print('ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
                 # print(ret, pitch, roll, yaw, sep='\t')
-                # continue
+                if self.replay_path:
+                    continue
             self.plane.update(ret, pitch, roll, yaw)
 
 

@@ -4,6 +4,7 @@ try:
     import pigpio
 except ImportError:
     print('Warning: pigio is NOT imported')
+    import mpigpio as pigpio
 
 @ins.only
 class Sonic():
