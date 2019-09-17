@@ -57,7 +57,7 @@ if __name__ == '__main__':
                 plane.mc(DC.OpticsFlow)
                 plane.take_off(70, 22)
                 plane.take_off(120, 10)
-                plane.idle(5)
+                # plane.idle(5)
                 controller.mission_start()
 
                 plane.land()

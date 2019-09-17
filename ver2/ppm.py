@@ -142,7 +142,7 @@ class PPM(Thread):
 
     def update_assign(self, signals):
         for signal in signals:
-            self._widths[signal[0]] = signal[1]*8-self.GAP+1500
+            self._widths[signal[0]] = min(max(signal[1], -50), 50)*8-self.GAP+1500
         self._update()
 
     def update_channel(self, channel, width):

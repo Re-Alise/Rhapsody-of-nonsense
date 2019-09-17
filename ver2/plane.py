@@ -58,7 +58,7 @@ class Plane():
         # -------------------------
         self.yaw_pid = PID(kp=0.2)
         self.pitch_pid = PID(kp=0.2)
-        self.roll_pid = PID(kp=0.2)
+        self.roll_pid = PID(kp=0.1)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
@@ -140,8 +140,10 @@ class Plane():
         yaw = self.yaw_pid.update(yaw_error)
         pitch = self.pitch_pid.update(pitch_error)
         roll = self.roll_pid.update(roll_error)
+        print(yaw, pitch, roll)
+        # Warning: Input for pitch is reversed
         if noERROR:
-            self.output([(DC.YAW, yaw), (DC.PITCH, pitch), (DC.ROLL, roll)])
+            self.output([(DC.YAW, yaw), (DC.PITCH, -pitch), (DC.ROLL, roll)])
         else:
             self.fail('plane.Plane.update', 'recive error flag')
 

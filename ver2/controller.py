@@ -7,7 +7,7 @@ from time import time, sleep
 import ins, cv2
 import numpy as np
 
-para = 5
+delta_c = 0.03
 
 
 MASK_ALL = np.zeros([240, 320],dtype=np.uint8)
@@ -28,7 +28,7 @@ MASK_LINE_MIDDLE[101:140, 81:240] = 255
 MASK_RIGHT = np.zeros([240, 320],dtype=np.uint8)
 MASK_RIGHT[106:320, 0:240] = 255
 
-kernel = np.ones((7,7),np.uint8)  
+kernel = np.ones((3,3),np.uint8)  
 
 @ins.only
 class Controller():
@@ -38,12 +38,14 @@ class Controller():
         self.replay_path = replay_path
         self.frame_new = None
         self.debug = debug
-        if not debug:
-            self.plane = Plane()
+        self.last_center = (120, 160)
+        self.c = 3.5
+        # if not debug:
+        self.plane = Plane()
 
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
-        self.stable(30)
+        self.stable(20)
         self.stop()
         pass
 
@@ -60,14 +62,15 @@ class Controller():
             if self.debug:
                 print('ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
                 # print(ret, pitch, roll, yaw, sep='\t')
-                continue
+                # continue
             self.plane.update(ret, pitch, roll, yaw)
 
 
     def _stabilize(self, color='k'):
         xx, yy, _, thr = self._find_center(self.frame_new, np.transpose(MASK_ALL))
-        pitch = (160-yy)//para
-        roll = (xx-120)//para
+        # Warning: Input for pitch is reversed
+        pitch = (160-yy)
+        roll = (xx-120)
         if self.debug:
             # show img
             pass
@@ -98,16 +101,23 @@ class Controller():
     def _find_center(self, frame, mask, color='k'):
         frame = cv2.GaussianBlur(frame, (25, 25), 0)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # _, thr = cv2.threshold(gray,78,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 9, 2)
+        # _, thr = cv2.threshold(gray,60,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, self.c)
         # thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
-        thr = cv2.morphologyEx(thr, cv2.MORPH_GRADIENT, kernel)
+        thr = cv2.morphologyEx(thr, cv2.MORPH_OPEN, kernel)
         thr = cv2.bitwise_and(thr, thr, mask=mask)
         
         contours, _ = cv2.findContours(thr,1,2)
         sumX=0
         sumY=0
         sumW=0
+        if len(contours) < 5:
+            self.c -= delta_c
+            if self.c < 0:
+                self.c = 0
+        else:
+            self.c += delta_c
+
         for cnt in contours:
             M=cv2.moments(cnt)
             if M['m00']<100:
@@ -123,11 +133,14 @@ class Controller():
             print('Not found')
             # return -1, -1, 0
             # return 160, 120, 0, ret_thr
-            cX = 120
-            cY = 160
+            # cX = 120
+            # cY = 160
+            cX = self.last_center[0]
+            cY = self.last_center[1]
         else:
             cX = sumX/sumW  
             cY = sumY/sumW
+            self.last_center = (cX, cY)
 
         if self.debug:
             ret_thr = thr
