@@ -11,6 +11,7 @@ import cv2
 delta_c = 0.03
 C_START = 3.5
 kernel = np.ones((3,3),np.uint8)
+kernel2 = np.ones((7,7),np.uint8)
 
 MASK_ALL = np.zeros([240, 320],dtype=np.uint8)
 MASK_ALL[0:240, 40:280] = 255
@@ -41,6 +42,7 @@ class Controller():
         self.debug = debug
         self.last_center = (120, 160)
         self.c = C_START
+        self._stop = 0
         # if not debug:
         if not debug:
             try:
@@ -54,7 +56,7 @@ class Controller():
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
         if self.debug:
-            self.stable(100)
+            self.stable()
             self.stop()
         else:
             self.stable(20)
@@ -66,17 +68,27 @@ class Controller():
         # print('get frame')
 
     def stable(self, sec=10):
-        now = time()
-        while time()-now<sec:
-            self.get_frame()
-            # check break condition
-            ret, pitch, roll, yaw = self._stabilize()
-            p(, self.debug'ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
-                # print(ret, pitch, roll, yaw, sep='\t')
-            # if self.replay_path:
-            #     continue
-            self.plane.update(ret, pitch, roll, yaw)
-
+        if not self.debug:
+            now = time()
+            while time()-now<sec:
+                self.get_frame()
+                # check break condition
+                ret, pitch, roll, yaw = self._stabilize()
+                p(self.debug, 'ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
+                    # print(ret, pitch, roll, yaw, sep='\t')
+                # if self.replay_path:
+                #     continue
+                self.plane.update(ret, pitch, roll, yaw)
+        else:
+            while not self._stop:
+                self.get_frame()
+                # check break condition
+                ret, pitch, roll, yaw = self._stabilize()
+                p(self.debug, 'ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
+                    # print(ret, pitch, roll, yaw, sep='\t')
+                # if self.replay_path:
+                #     continue
+                self.plane.update(ret, pitch, roll, yaw)
 
     def _stabilize(self, color='k'):
         xx, yy, _, thr = self._find_center(self.frame_new, np.transpose(MASK_ALL))
@@ -114,16 +126,16 @@ class Controller():
         frame = cv2.GaussianBlur(frame, (25, 25), 0)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # _, thr = cv2.threshold(gray,60,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, self.c)
-        # thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
+        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, self.c)
         thr = cv2.morphologyEx(thr, cv2.MORPH_OPEN, kernel)
+        thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel2)
         thr = cv2.bitwise_and(thr, thr, mask=mask)
         
         contours, _ = cv2.findContours(thr,1,2)
         sumX=0
         sumY=0
         sumW=0
-        if len(contours) < 5:
+        if len(contours) < 10:
             self.c -= delta_c
             if self.c < 0:
                 self.c = 0
@@ -162,8 +174,15 @@ class Controller():
             cv2.putText(edited, 'cX: {}'.format(cX), (0, edited.shape[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
             cv2.putText(edited, 'cY: {}'.format(cY), (0, edited.shape[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
             cv2.putText(edited, 'sumW: {}'.format(sumW), (0, edited.shape[1]+40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+            cv2.putText(edited, 'CTerm: {}'.format(self.c), (0, edited.shape[1]+60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
             cv2.imshow('Replay', cv2.hconcat([frame, edited]))
-            while not cv2.waitKey(0) & 0xFF == ord(' '):
+            while 1:
+                inn = cv2.waitKey(0)
+                if inn & 0xFF == ord(' '):
+                    break
+                if inn & 0xFF == ord('x'):
+                    self._stop = 1
+                    break
                 sleep(0.1)
         else:
             ret_thr = None
@@ -174,9 +193,10 @@ class Controller():
 
 if __name__ == '__main__':
     try:
-        c = Controller(source_path=0, debug=1, save=0)
-        c = Controller(source_path='path', debug=1, save=0)
-    except:
+        # c = Controller(source_path=0, debug=1, save=0)
+        c = Controller(source_path='video/test1.avi', debug=1, save=0)
+    except Exception as e:
+        print(e)
         print('Controller init fail')
         exit()
     c.record.start()

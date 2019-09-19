@@ -65,7 +65,7 @@ class PPM(Thread):
         Thread.__init__(self)
         self.adjust = 1
         self._input_queue = input_queue
-        self.pi = tool.get_only(pigpio.pi)
+        self.pi = get_only(pigpio.pi)
         self.gpio = gpio
         self.gpio_sonic = gpio_sonic
         self.debug= debug

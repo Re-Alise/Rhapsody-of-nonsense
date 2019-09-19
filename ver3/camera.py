@@ -43,8 +43,8 @@ class Record(Thread):
         # elif isinstance(source_path, int):
         #     cameraNumber = source_path
         elif isinstance(self.source_path, str):
-            self.cap = cv2.VideoCapture(self.replay_path)
-            p(self.debug, 'Initialize video capture from file:', self.replay_path)
+            self.cap = cv2.VideoCapture(self.source_path)
+            p(self.debug, 'Initialize video capture from file:', self.source_path)
             return
         self.cap = cv2.VideoCapture(self.source_path)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
@@ -78,7 +78,7 @@ class Record(Thread):
 
                 # queue output
                 while self.output_queue.full():
-                    if self.replay_path:
+                    if self.source_path:
                         sleep(0.1)
                     else:
                         try:

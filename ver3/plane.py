@@ -45,7 +45,7 @@ class Plane():
         # self.cap = cv2.VideoCaptures(0)
         if not debug:
             try:
-                self._pi = tool.get_only(pigpio.pi)
+                self._pi = get_only(pigpio.pi)
                 self._pi.wave_tx_stop()
                 self.sonic = Sonic()
                 self.lidar = TFMiniLidar(TF_PORT, debug=0)
