@@ -74,11 +74,7 @@ class Controller():
                 self.get_frame()
                 # check break condition
                 ret, pitch, roll, yaw = self._stabilize()
-<<<<<<< HEAD
-                p(self.debug, 'ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
-=======
                 # p(self.debug, 'ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
->>>>>>> Add error handling for VideoCapture and related modules
                     # print(ret, pitch, roll, yaw, sep='\t')
                 # if self.replay_path:
                 #     continue
@@ -201,13 +197,8 @@ class Controller():
 
 if __name__ == '__main__':
     try:
-<<<<<<< HEAD
-        # c = Controller(source_path=0, debug=1, save=0)
-        c = Controller(source_path='video/test1.avi', debug=1, save=0)
-=======
         c = Controller(source_path=0, debug=1, save=0)
         # c = Controller(source_path='video/test1.avi', debug=1, save=0)
->>>>>>> Add error handling for VideoCapture and related modules
     except Exception as e:
         print(e)
         print('Controller init fail')
