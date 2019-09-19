@@ -34,7 +34,7 @@ MASK_RIGHT[106:320, 0:240] = 255
 
 @only
 class Controller():
-    def __init__(self, source_path=0, save=1, debug=0):
+    def __init__(self, source_path=None, save=1, debug=0):
         self.frame_queue = Queue(1)
         self.record = Record(self.frame_queue, source_path=source_path, save=save)
         self.source_path = source_path
@@ -48,7 +48,7 @@ class Controller():
             try:
                 self.plane = Plane()
             except:
-                display('connect to plane fail')
+                display('Error: Failed to connect plane')
                 raise IOError
         elif __name__ == '__main__':
             self.plane = Plane(debug=1)
@@ -74,7 +74,11 @@ class Controller():
                 self.get_frame()
                 # check break condition
                 ret, pitch, roll, yaw = self._stabilize()
+<<<<<<< HEAD
                 p(self.debug, 'ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
+=======
+                # p(self.debug, 'ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
+>>>>>>> Add error handling for VideoCapture and related modules
                     # print(ret, pitch, roll, yaw, sep='\t')
                 # if self.replay_path:
                 #     continue
@@ -129,7 +133,11 @@ class Controller():
         thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, self.c)
         thr = cv2.morphologyEx(thr, cv2.MORPH_OPEN, kernel)
         thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel2)
-        thr = cv2.bitwise_and(thr, thr, mask=mask)
+        try:
+            thr = cv2.bitwise_and(thr, thr, mask=mask)
+        except:
+            p(self.debug, 'Something went wrong when do bitwise operation')
+            p(self.debug, 'Image shape: {}'.format(thr.shape))
         
         contours, _ = cv2.findContours(thr,1,2)
         sumX=0
@@ -193,8 +201,13 @@ class Controller():
 
 if __name__ == '__main__':
     try:
+<<<<<<< HEAD
         # c = Controller(source_path=0, debug=1, save=0)
         c = Controller(source_path='video/test1.avi', debug=1, save=0)
+=======
+        c = Controller(source_path=0, debug=1, save=0)
+        # c = Controller(source_path='video/test1.avi', debug=1, save=0)
+>>>>>>> Add error handling for VideoCapture and related modules
     except Exception as e:
         print(e)
         print('Controller init fail')

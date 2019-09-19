@@ -11,7 +11,7 @@ IMAGE_SIZE = (320, 240)
 
 @only
 class Record(Thread):
-    def __init__(self, frame_queue, source_path=0, save=1, debug=0):
+    def __init__(self, frame_queue, source_path=None, save=1, debug=0):
         Thread.__init__(self)
         self.daemon = 1
         self.debug = debug
@@ -19,9 +19,14 @@ class Record(Thread):
         self.read_count = 0
         self.write_count = 0
         self.source_path = source_path
-        self.init_capture()
+        try:
+            self.init_capture()
+        except:
+            raise IOError
+
         self.rec_stop = False
         self.output_queue = frame_queue
+        
 
     def threshold(self, frame):
         r = frame[:,:,2]
@@ -37,24 +42,42 @@ class Record(Thread):
         return th0, th1, th2, th3
 
     def init_capture(self):
-        source_path = self.source_path
-        if not source_path:
-            self.source_path = 0
-        # elif isinstance(source_path, int):
-        #     cameraNumber = source_path
-        elif isinstance(self.source_path, str):
-            self.cap = cv2.VideoCapture(self.source_path)
-            p(self.debug, 'Initialize video capture from file:', self.source_path)
+        if self.source_path != None:
+            if isinstance(self.source_path, str):
+                self.cap = cv2.VideoCapture(self.source_path)
+                p(self.debug, 'Initialize video capture from file:', self.source_path)
+                return
+            elif isinstance(self.source_path, int):
+                self.cap = cv2.VideoCapture(self.source_path)
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
+                p(self.debug, 'Initialize video capture from file:', self.source_path)
+            else:
+                p(self.debug, 'Wrong source type:', type(self.source_path))
+                raise TypeError
+
+            if not self.cap.isOpened():
+                p(True, 'Failed to open video capture, aborted')
+                raise IOError
+
             return
-        self.cap = cv2.VideoCapture(self.source_path)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
-        if self.save:
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            time_str = '/home/pi/Desktop/Rhapsody-of-nonsense/records/' + str(int(time()))
-            os.mkdir(time_str)
-            self.out = cv2.VideoWriter(time_str + '/original' + '.avi', fourcc,
-                            10.0, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
+
+        else:
+            self.cap = cv2.VideoCapture(0)
+
+            if not self.cap.isOpened():
+                p(True, 'Failed to open video capture, aborted')
+                raise IOError
+
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
+            if self.save:
+                fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                time_str = '/home/pi/Desktop/Rhapsody-of-nonsense/records/' + str(int(time()))
+                os.mkdir(time_str)
+                self.out = cv2.VideoWriter(time_str + '/original' + '.avi', fourcc,
+                                10.0, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
+
         # self.out0 = cv2.VideoWriter(time_str + '/gray' + '.avi', fourcc,
         #                     10.0, (IMAGE_SIZE[0], IMAGE_SIZE[1]))
         # self.out1 = cv2.VideoWriter(time_str + '/r' + '.avi', fourcc,
@@ -69,7 +92,7 @@ class Record(Thread):
         while(self.cap.isOpened()):
             ret, frame = self.cap.read()
             if ret:
-                if isinstance(self.source_path, int):
+                if self.source_path == None or isinstance(self.source_path, int):
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                     if self.save:
                         self.out.write(frame)

@@ -23,6 +23,7 @@ class pi():
 
 def pulse(*args):
     return
+
 LOW = 0
 WAVE_MODE_REPEAT_SYNC = 0
 EITHER_EDGE = 0
