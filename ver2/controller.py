@@ -108,6 +108,39 @@ class Controller():
     #     else:
     #         return 0
 
+    def convert(frame)
+    """ an amazing threshold function"""
+        frame = cv2.GaussianBlur(frame, (25, 25), 0)
+        r = frame[,;,;2]
+        g = frame[,;,;1]
+        b = frame[,;,;0]
+        c = b-r+200
+        _, c_thr = cv2.threshold(b, 180, 255, cv2.THRESH_BINARY_INV)
+        return c_thr
+
+    def detect(frame):
+        """辨識紅綠燈"""
+        frame = cv2.GaussianBlur(frame, (25, 25), 0)
+        r = frame[,;,;2]
+        g = frame[,;,;1]
+        b = frame[,;,;0]
+        a = r-g+220
+        b = b-r+200
+        _, a_thr = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)
+        _, b_thr = cv2.threshold(b, 100, 255, cv2.THRESH_BINARY_INV)
+        num1 = cv2.countNonZero(a_thr)
+        num2 = cv2.countNonZero(b_thr)
+        if num1>10000:
+            if num2>7000:
+                print("GG")
+            else:
+                print("R")
+        else:
+            if num2>7000:
+                print("BB")
+            else:
+                print("XXX")
+
     def _find_center(self, frame, mask, color='k'):
         frame = cv2.GaussianBlur(frame, (25, 25), 0)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
