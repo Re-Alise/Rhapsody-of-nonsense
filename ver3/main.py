@@ -3,6 +3,7 @@ from threading import Thread
 from queue import Queue
 from plane import Plane
 from sonic import Sonic
+from box import Box, TBox
 from tfmini import TFMiniLidar
 from data import PIN, DC, MASK
 from camera import Record
@@ -48,6 +49,7 @@ if __name__ == '__main__':
         save = 1
 
     try:
+        box = Box()
         gpio = tool.get_only(pigpio.pi)
         gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
         plane = Plane()
@@ -57,6 +59,9 @@ if __name__ == '__main__':
         print('!!!init fail')      
         exit()                       
     print('init finish-------------------------------')
+    # box.drop()
+    # sleep(1)
+    # box.close()
     while 1:
         try:
             start_signal = gpio.read(PIN.STATE)

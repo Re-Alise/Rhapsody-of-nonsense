@@ -81,14 +81,21 @@ class TFMiniLidar(Thread):
 
     def __init__(self, port: str=None, debug=False):
         Thread.__init__(self)
-        if not self.port:
+        if not port:
             print('TF mini lidar error: No port information')
             raise IOError
 
         try:
-            self.s = Serial(self.port, TF_BAUDRATE, timeout=0.1)
+            self.s = Serial(port, TF_BAUDRATE, timeout=0.1)
         except:
             print('TF mini lidar error: Port could not open')
+            raise IOError
+
+        try:
+            test = measure(self.s)
+            print('Test measure:', test)
+        except SerialException:
+            print('Serial connection is broken')
             raise IOError
 
         self.debug = debug

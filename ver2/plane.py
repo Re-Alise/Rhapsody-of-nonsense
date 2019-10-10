@@ -9,6 +9,8 @@ from time import sleep, time
 from pid import PID
 
 import ins
+
+TF_PORT = None
 try:
     import pigpio
 except ImportError:
@@ -47,6 +49,7 @@ class Plane():
 
     def __init__(self):
         # just one buffer because we just need the last value
+        print('init plane')
         self.output_count = 0
         self.output_queue = Queue(1)
         # self.cap = cv2.VideoCaptures(0)
@@ -57,12 +60,13 @@ class Plane():
             self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
         except:
             raise IOError
+        print('all peripheral inited')
         self.hight = 130
         PPM(self.output_queue, 13)
         # -------------------------
-        self.yaw_pid = PID(kp=0.2)
-        self.pitch_pid = PID(kp=1.6, kd=0.01)
-        self.roll_pid = PID(kp=0.8, kd=0.01)
+        self.yaw_pid = PID(kp=0.7)
+        self.pitch_pid = PID(kp=0.7)
+        self.roll_pid = PID(kp=0.7)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
@@ -95,6 +99,7 @@ class Plane():
         while self.lidar.value < hight:
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, 0)])
+        sleep(LOOP_INTERNAL)
 
     @verbose
     def throttle_test(self):
@@ -110,7 +115,7 @@ class Plane():
                 # self.check()
                 # self.output([(DC.PITCH, self.pitch), (DC.ROLL, self.row), (DC.YAW, self.yaw)])
                 self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.YAW, 0)])
-                sleep(LOOP_INTERNAL)
+                sleep(0.1)
 
     def check(self, overhight=80):
         if self.sonic.value>overhight:
@@ -119,9 +124,11 @@ class Plane():
     @verbose
     def land(self):
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, -LAND_SPEED), (DC.YAW, 0),])
+        # print(self.sonic.value)
         while self.sonic.value>8:
+            # print(self.sonic.value)
             sleep(LOOP_INTERNAL)
-        self.output([(DC.THROTTLE, -50)])
+        self.output([(DC.THROTTLE, -400)])
         while self.sonic.value>4:
             sleep(LOOP_INTERNAL)
 
@@ -144,7 +151,7 @@ class Plane():
         yaw = self.yaw_pid.update(yaw_error)
         pitch = self.pitch_pid.update(pitch_error)
         roll = self.roll_pid.update(roll_error)
-        print(yaw, pitch, roll)
+        print('yaw:', yaw, 'pitch:', pitch, 'roll:', roll)
         # Warning: Input for pitch is reversed
         if noERROR:
             self.output([(DC.YAW, yaw), (DC.PITCH, -pitch), (DC.ROLL, roll)])

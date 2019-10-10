@@ -34,7 +34,7 @@ if __name__ == '__main__':
     wf = []
     micros = 0
     wf.append(pigpio.pulse(1 << gpio_sonic, 0, 15))
-    wf.append(pigpio.pulse(1 << gpio, 1 << gpio_sonic, 20000-15))
+    wf.append(pigpio.pulse(0, 1 << gpio_sonic, 20000-15))
 
     # 建立wf並傳送出去（嘗試同步）
     gpio.wave_add_generic(wf)

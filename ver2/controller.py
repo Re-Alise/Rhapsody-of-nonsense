@@ -7,23 +7,26 @@ from time import time, sleep
 import ins, cv2
 import numpy as np
 
-delta_c = 0.03
+delta_c = 0.02
 
 
 MASK_ALL = np.zeros([240, 320],dtype=np.uint8)
 MASK_ALL[0:240, 40:280] = 255
 
 MASK_FORWARD = np.zeros([240, 320],dtype=np.uint8)
-MASK_FORWARD[10:90, 10:310] = 255
+MASK_FORWARD[0:90, 40:280] = 255
 
 MASK_TOP = np.zeros([240, 320],dtype=np.uint8)
-MASK_TOP[0:120, 0:320] = 255
+MASK_TOP[10:60, 20:300] = 255
 
 MASK_BUTTON = np.zeros([240, 320],dtype=np.uint8)
 MASK_BUTTON[121:240, 0:320] = 255
 
 MASK_LINE_MIDDLE = np.zeros([240, 320],dtype=np.uint8)
-MASK_LINE_MIDDLE[101:140, 81:240] = 255
+MASK_LINE_MIDDLE[90:150, 40:280] = 255
+
+MASK_OWO = np.zeros([240, 320],dtype=np.uint8)
+MASK_OWO[:, 120:200] = 255
 
 MASK_RIGHT = np.zeros([240, 320],dtype=np.uint8)
 MASK_RIGHT[106:320, 0:240] = 255
@@ -34,11 +37,17 @@ kernel = np.ones((3,3),np.uint8)
 class Controller():
     def __init__(self, debug=0, replay_path=None, save=1):
         self.frame_queue = Queue(1)
-        self.record = Record(self.frame_queue, replay_path=replay_path, save=save)
+        self.feedback_queue = Queue(1)
+        try:
+            self.record = Record(self.frame_queue, replay_path=replay_path, save=save, feedback_queue=self.feedback_queue)
+        except:
+            print('Controller init failed')
+            raise IOError
+
         self.replay_path = replay_path
         self.frame_new = None
         self.debug = debug
-        self.last_center = (120, 160)
+        self.last_center = (160, 120)
         self.c = 3.5
         # if not debug:
         if not replay_path:
@@ -51,16 +60,36 @@ class Controller():
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
         if self.replay_path:
-            self.stable(100)
+            self.stable(10)
             self.stop()
         else:
-            self.stable(20)
-            self.stop()
+            # self.stable(10)
+            self.forward(90, 40)
+            # self.stop()
         pass
 
     def get_frame(self):
         self.frame_new = self.frame_queue.get()
         # print('get frame')
+
+    def forward(self, pitch, sec=10):
+        now = time()
+        while time()-now<sec:
+            self.get_frame()
+            # check break condition
+            # ret, _, roll, yaw = self._stabilize()
+            ret, pitch_fector, roll, yaw = self._along()
+            _, yy, _, thr = self._find_center(self.frame_new, MASK_OWO)
+            if yy > 120:
+                pitch_overrided = (yy - 120) * 0.8
+            else:
+                pitch_overrided = pitch * pitch_fector
+            if self.debug:
+                print('ret: {}\t pitch: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch, pitch_fector, roll, yaw))
+                # print(ret, pitch, roll, yaw, sep='\t')
+                if self.replay_path:
+                    continue
+            self.plane.update(ret, pitch_overrided, roll, yaw)
 
     def stable(self, sec=10):
         now = time()
@@ -77,21 +106,32 @@ class Controller():
 
 
     def _stabilize(self, color='k'):
-        xx, yy, _, thr = self._find_center(self.frame_new, np.transpose(MASK_ALL))
+        try:
+            print('Frame shape:', self.frame_new.shape)
+            print('Mask shape:', MASK_ALL.shape)
+        except:
+            pass
+        
+        xx, yy, _, thr = self._find_center(self.frame_new, MASK_ALL)
         # Warning: Input for pitch is reversed
-        pitch = (160-yy)
-        roll = (xx-120)
+        pitch = (120-yy)
+        roll = (xx-160)
         if self.debug:
             # show img
             pass
         return 1, pitch, roll, 0
 
-    # def _along(self, frame, color):
-    #     xx, _, _ = self._find_center(frame, MASK_FORWARD)
-    #     yaw = xx-160
-    #     _, yy, _ = self._find_center(frame, MASK_LINE_MIDDLE)
-    #     row = 120-yy
-    #     pass
+    def _along(self, color='k'):
+        xx, _, _, _ = self._find_center(self.frame_new, MASK_FORWARD)
+        yaw = xx-160
+        xx, _, _, _ = self._find_center(self.frame_new, MASK_LINE_MIDDLE)
+        roll = xx-160
+        # pitch_fector = min(50, (50 - abs(yaw))) / max(50, abs(yaw))
+        if abs(yaw) > 40:
+            pitch_fector = 0.3
+        else:
+            pitch_fector = 1
+        return 1, pitch_fector, roll, yaw
 
     # def _around(self, frame, color):
     #     _, yy, _ = self._find_center(frame, MASK_RIGHT)
@@ -145,7 +185,7 @@ class Controller():
         frame = cv2.GaussianBlur(frame, (25, 25), 0)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         # _, thr = cv2.threshold(gray,60,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, self.c)
+        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 13, self.c)
         # thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel)
         thr = cv2.morphologyEx(thr, cv2.MORPH_OPEN, kernel)
         thr = cv2.bitwise_and(thr, thr, mask=mask)
@@ -187,13 +227,21 @@ class Controller():
 
         if self.debug:
             ret_thr = thr
+            edited = np.copy(thr)
+            edited = cv2.cvtColor(edited, cv2.COLOR_GRAY2BGR)
+            cv2.circle(edited, (int(cX), int(cY)), 5, (178, 0, 192), -1)
+            text_base_position = 140
+            cv2.putText(edited, 'cX: {}'.format(cX), (0, text_base_position), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+            cv2.putText(edited, 'cY: {}'.format(cY), (0, text_base_position+20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+            cv2.putText(edited, 'sumW: {}'.format(sumW), (0, text_base_position+40), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+            cv2.putText(edited, 'yaw: {}, roll: {}, pitch: {}'.format(self.plane.yaw_pid.output, self.plane.roll_pid.output, self.plane.pitch_pid.output), (0, text_base_position+60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+            while self.feedback_queue.full():
+                try:
+                    self.feedback_queue.get(timeout=0.00001)
+                except:
+                    pass
+            self.feedback_queue.put(edited)
             if self.replay_path:
-                edited = np.copy(thr)
-                edited = cv2.cvtColor(edited, cv2.COLOR_GRAY2BGR)
-                cv2.circle(edited, (int(cX), int(cY)), 5, (178, 0, 192), -1)
-                cv2.putText(edited, 'cX: {}'.format(cX), (0, edited.shape[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-                cv2.putText(edited, 'cY: {}'.format(cY), (0, edited.shape[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-                cv2.putText(edited, 'sumW: {}'.format(sumW), (0, edited.shape[1]+40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
                 cv2.imshow('Replay', cv2.hconcat([frame, edited]))
                 while not cv2.waitKey(0) & 0xFF == ord(' '):
                     sleep(0.1)

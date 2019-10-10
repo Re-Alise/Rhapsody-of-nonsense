@@ -22,6 +22,7 @@ class PIN(IntEnum):
     OUTPUT = 13
     BUZZER = 11
     STATE = 6
+    BOX = 5
 
 class COLOR(IntEnum):
     K = 3

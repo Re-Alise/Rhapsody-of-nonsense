@@ -116,8 +116,10 @@ class TFMiniLidar(Thread):
 if __name__ == '__main__':
     enable_p()
     ports = serial_ports('ttyUSB')
+    # print(ports)
     if len(ports) == 0:
         p(1, 'No serial connection detected')
         exit()
     lidar = TFMiniLidar(ports[0], debug=1)
+    input('')
     

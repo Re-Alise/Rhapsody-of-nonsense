@@ -45,8 +45,9 @@ class PID():
             # Remember last time and last error for next calculation
             self.last_time = self.current_time
             self.last_error = error
+            self.output = int(PTerm + (self.Ki * self.ITerm) + (self.Kd * DTerm))
 
-            return int(PTerm + (self.Ki * self.ITerm) + (self.Kd * DTerm))
+            return self.output
 
     def setkp(self, n):
         self.kp = n
