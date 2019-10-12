@@ -231,16 +231,6 @@ class Controller():
     #     else:
     #         return 0
 
-    def convert(self, frame):
-        """ an amazing threshold function"""
-        frame = cv2.GaussianBlur(frame, (25, 25), 0)
-        r = frame[:,:,2]
-        g = frame[:,:,1]
-        b = frame[:,:,0]
-        c = b-r+200
-        _, c_thr = cv2.threshold(b, 180, 255, cv2.THRESH_BINARY_INV)
-        return c_thr
-
     def detect(self, frame):
         """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
         """

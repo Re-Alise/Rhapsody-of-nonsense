@@ -5,15 +5,16 @@ from time import sleep
 
 # IMAGE_SIZE = (240, 320)# 高寬
 IMAGE_SIZE = (320, 240)
-path = "./../video/"
-fileName = "3color.avi"
-fileName = "test8.avi"
+path = "1570714029/"
+# path = "./../video/"
+fileName = "original.avi"
+# fileName = "test8.avi"
 gaussian = (13, 13)
 kernel = np.ones((3,3),np.uint8)
 """
 " ":next frame
 "x":quit
-似乎 不要找黑色 改成找不是地板和色塊比較容易?
+似乎 不要找黑色 改成找不是地板和色塊比較容易?               
 先判斷色塊 把他剃掉?
 """
 
@@ -94,12 +95,14 @@ def detect(sframe):
 
 def black(frame):
     frame = cv2.GaussianBlur(frame, gaussian, 0)
-    gray = frame[:,:,2]
-    # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, thr = cv2.threshold(gray,150,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    r = frame[:,:,2]
+    b = frame[:,:,0]
+    c = b-r+180
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, thr = cv2.threshold(c,150,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
     # thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 2)
-    thr = cv2.cvtColor(thr, cv2.COLOR_GRAY2BGR)
-    return thr
+    # thr = cv2.cvtColor(thr, cv2.COLOR_GRAY2BGR)
+    return cv2.hconcat([gray, thr])
 
 def test(frame):
     frame = cv2.GaussianBlur(frame, gaussian, 0)
@@ -299,7 +302,7 @@ if __name__ == "__main__":
             ret, frame = cap.read()
             if ret:
                 # ....
-                cv2.imshow('Replay', _mask(_general_binarization(frame), offset_x=-20))
+                cv2.imshow('Replay', black(frame))
                 print(frame.shape)
                 # detect(frame)
                 while 1:

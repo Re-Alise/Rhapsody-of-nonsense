@@ -31,19 +31,6 @@ class Record(Thread):
         print('=' * 20 + 'Video recording...' + '=' * 20)
         self.output_queue = frame_queue
 
-    def threshold(self, frame):
-        r = frame[:,:,2]
-        g = frame[:,:,1]
-        b = frame[:, :, 0]
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        ret3,th1 = cv2.threshold(r+100,150,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        ret3,th2 = cv2.threshold(g+100,120,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        ret3,th3 = cv2.threshold(b+100,100,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        ret3,th0 = cv2.threshold(gray,100,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-
-        return th0, th1, th2, th3
-
     def init_capture(self):
         try:
             if self.replay_path and len(self.replay_path) > 1:

@@ -2,7 +2,7 @@ from time import sleep, time
 
 SAMPLE_TIME = 0.01
 # ITerm limit
-WINDUP_GUARD = 10
+WINDUP_GUARD = 100
 
 class PID():
     def __init__(self, kp=1, ki=0, kd=0):
@@ -32,10 +32,10 @@ class PID():
             self.ITerm += error * delta_time
             
             # Iterm limit
-            if (self.ITerm < WINDUP_GUARD):
-                self.ITerm = WINDUP_GUARD
-            elif (self.ITerm > WINDUP_GUARD):
-                self.ITerm = WINDUP_GUARD
+            # if (self.ITerm < WINDUP_GUARD):
+            #     self.ITerm = WINDUP_GUARD
+            # elif (self.ITerm > WINDUP_GUARD):
+            #     self.ITerm = WINDUP_GUARD
 
             if delta_time > 0:
                 DTerm = delta_error / delta_time
