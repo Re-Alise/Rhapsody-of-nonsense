@@ -13,7 +13,7 @@ C_START = 3.5
 
 kernel = np.ones((3,3),np.uint8)
 kernel2 = np.ones((7,7),np.uint8)
-IMAGE_SIZE = (320, 240) # 高寬
+IMAGE_SIZE = (240, 320) # 高寬
 
 # MASK: width, hight, offset_x, offset_y
 #       (half) (half) (right+)  (top+)
@@ -24,12 +24,12 @@ MASK_FORWARD = (230, 45, 0, 75)
 
 @only
 class Controller():
-    def __init__(self, source_path=None, save=1, debug=0):
+    def __init__(self, source_path=None, save_path=None, save=1, debug=0):
         """debug: manual read video (" ", "x"), and no use PIGPIO"""
         self.debug = debug
         self.frame_queue = Queue(1)
         self.feedback_queue = Queue()
-        self.record = Record(self.frame_queue, debug=self.debug, feedback_queue=self.feedback_queue, source_path=source_path, save=save)
+        self.record = Record(self.frame_queue, debug=self.debug, feedback_queue=self.feedback_queue, source_path=source_path, save=save, save_path=save_path)
         self.source_path = source_path
         self.frame_new = None
         self.last_center = (120, 160)
@@ -59,7 +59,6 @@ class Controller():
         now = time()
         while time()-now<sec:
             if self._stop:
-                self.stop()
                 break
             self._get_frame()
             # check break condition
@@ -77,14 +76,13 @@ class Controller():
         # except:
         #     pass
         
-        xx, yy, _, thr = self._find_center(mask=MASK_ALL)
-        # Warning: Input for pitch is reversed
-        pitch = (120-yy)
-        roll = (xx-160)
+        pitch = self._find_center(mask=MASK_ALL, data='y')
+        roll = self._find_center(mask=MASK_ALL, data='x')
+        YAW = self._find_center(mask=(20, None, 40, 0), data='x')
         if self.debug:
             # show img
             pass
-        return 1, pitch, roll, 0
+        return 1, pitch, roll, YAW
 
     def _get_frame(self):
         frame = self.frame_queue.get()
@@ -137,8 +135,8 @@ class Controller():
         """
         width, hight, offset_x, offset_y = mask
         mask = np.zeros(img_size,dtype=np.uint8)
-        center_point_x = img_size[1]//2 + offset_x
-        center_point_y = img_size[0]//2 + offset_y
+        center_point_x = img_size[0]//2 + offset_x
+        center_point_y = img_size[1]//2 + offset_y
         if not hight and not width:
             return self.binarized_frame
         elif not hight:
@@ -165,13 +163,17 @@ class Controller():
         masked = np.bitwise_and(self.binarized_frame, mask)
         return masked
 
-    def _find_center(self, mask, error_num=10):
+    def _find_center(self, mask, data, error_num=10):
+        "mask: (width, hight, offset_x, offset_y),\ndata: 'x', 'y', 'w'"
         thr =self._mask(mask=mask)
 
-        contours, _ = cv2.findContours(thr,1,2)
+        center_point_x = IMAGE_SIZE[0]//2 + mask[2]
+        center_point_y = IMAGE_SIZE[1]//2 + mask[3]
         sumX=0
         sumY=0
         sumW=0
+        
+        contours, _ = cv2.findContours(thr,1,2)
         if len(contours) < error_num:
             self.c -= delta_c
             if self.c < 0:
@@ -203,21 +205,26 @@ class Controller():
             ret_thr = thr
             if self.source_path:
                 cv2.imshow('Replay', self.frame_new)
-                # cv2.imshow('Replay', cv2.hconcat([frame, edited]))
                 while 1:
-                    inn = cv2.waitKey(0)
-                    if inn & 0xFF == ord(' '):
-                        break
+                    inn = cv2.waitKey(1)
                     if inn & 0xFF == ord('x'):
                         self._stop = 1
                         break
-                    sleep(0.1)
+                    break
         else:
             ret_thr = None
-        return cX, cY, sumW, ret_thr
+        
+        if data == 'x':
+            self.feedback_queue.put((0, (center_point_y, center_point_x), (center_point_y, int(cX))))
+            return center_point_x - cX
+        if data == 'y':
+            self.feedback_queue.put((0, (center_point_y, center_point_x), (int(cY), center_point_x)))
+            return cY - center_point_y
+        if data == 'w':
+            return sumW
 
     def frame_finish(self):
-        self.feedback_queue.put('yaw: {}, roll: {}, pitch: {}'.format(self.plane.yaw_pid.output, self.plane.roll_pid.output, self.plane.pitch_pid.output))
+        self.feedback_queue.put('0yaw: {}, roll: {}, pitch: {}'.format(self.plane.yaw_pid.output, self.plane.roll_pid.output, self.plane.pitch_pid.output))
 
     def stop(self):
         self.record.stop_rec()
@@ -226,7 +233,7 @@ if __name__ == '__main__':
     try:
         # c = Controller(source_path=0, debug=1, save=0)
         # c = Controller(source_path='video/test1.avi', debug=1, save=0)
-        c = Controller(source_path='1570714029/original.avi', debug=1, save=1)
+        c = Controller(source_path='C:\\Users\\YUMI.Lin\\Desktop\\video\\test8.avi', debug=1, save=1, save_path='C:\\Users\\YUMI.Lin\\Desktop\\testVideo\\')
         print('~~~')
     except Exception as e:
         print(e)

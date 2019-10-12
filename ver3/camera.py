@@ -10,7 +10,7 @@ IMAGE_SIZE = (240, 320)
 
 @only
 class Record(Thread):
-    def __init__(self, frame_queue, feedback_queue=None, source_path=None, save=1, debug=0):
+    def __init__(self, frame_queue, feedback_queue=None, source_path=None, save_path=None, save=1, debug=0):
         Thread.__init__(self)
         self.daemon = 1
         self.debug = debug
@@ -18,8 +18,10 @@ class Record(Thread):
         self.read_count = 0
         self.write_count = 0
         self.source_path = source_path
+        self.save_path = save_path
         self.feedback_queue = feedback_queue
         self.bin = np.zeros([240, 320, 3],dtype=np.uint8)
+        self.bin_ = self.bin
         try:
             self.init_capture()
         except:
@@ -45,8 +47,8 @@ class Record(Thread):
         else:
             self.cap = cv2.VideoCapture(0)
         try:
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[1])
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[0])
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
         except:
             p(True, 'setting carema fail')
 
@@ -55,12 +57,17 @@ class Record(Thread):
             fourcc = cv2.VideoWriter_fourcc(*'XVID')
             # time_str = '/home/pi/Desktop/Rhapsody-of-nonsense/records/' + str(int(time()))
             time_str = str(int(time()))
-            os.mkdir(time_str)
+            # os.mkdir()
             print(2)
-            self.out = cv2.VideoWriter(time_str + '/original' + '.avi', fourcc,
-                            30, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
-        
-            print(3)
+            # self.out = cv2.VideoWriter(self.save_path + time_str + '.avi', fourcc,
+            #                 30, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
+            
+            time_str = str(int(time()))
+            # os.mkdir(time_str)
+            self.out = cv2.VideoWriter('C:\\Users\\YUMI.Lin\\Desktop\\testVideo\\' + time_str + '.avi', fourcc,
+                30.0, (IMAGE_SIZE[1] * 2, IMAGE_SIZE[0]))
+
+
         if not self.cap.isOpened():
             p(True, 'Failed to open video capture, aborted')
             raise IOError
@@ -71,29 +78,14 @@ class Record(Thread):
             ret, frame = self.cap.read()
 
             # 處理回放
-            text_base_position = 0
-            i = 0
-            while not self.feedback_queue.empty():
-                obj = self.feedback_queue.get()
-                obj_type = type(obj)
-                if obj_type == np.ndarray:
-                    self.bin = cv2.cvtColor(obj, cv2.COLOR_GRAY2BGR)
-                elif obj_type == tuple:
-                    if obj[0] == 0:
-                        cv2.line(self.bin, (160, obj[1]), (obj[2], obj[1]), (0, 0, 255), 3)
-                    elif obj[0] == 1:
-                        cv2.line(self.bin, (obj[1], 120), (obj[1], obj[2]), (0, 0, 255), 3)
-
-                elif obj_type == str:
-                    cv2.putText(self.bin, obj, (0, text_base_position + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-                    i += 1
 
             if ret:
+                self.process()
                 if isinstance(self.source_path, str):
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                     if self.save:
-                        print(frame.shape)
-                        self.out.write(frame)#, self.bin]))
+                        # print(frame.shape)
+                        self.out.write(cv2.hconcat([frame, self.bin_]))
                         # print(cv2.hconcat([frame, self.bin]).shape)
                     self.write_count += 1
                 self.read_count += 1
@@ -114,6 +106,26 @@ class Record(Thread):
                 if self.save:
                     self.out.release()
                 break
+
+    def process(self):
+        text_base_position = 10
+        while not self.feedback_queue.empty():
+            obj = self.feedback_queue.get()
+            obj_type = type(obj)
+            if obj_type == np.ndarray:
+                self.bin = cv2.cvtColor(obj, cv2.COLOR_GRAY2BGR)
+            elif obj_type == tuple:
+                print(obj)
+                if obj[0] == 0:
+                    cv2.line(self.bin, obj[1], obj[2], (0, 0, 255), 3)
+                elif obj[0] == 1:
+                    pass
+
+            elif obj_type == str:
+                i = int(obj[0])
+                cv2.putText(self.bin, obj[1:], (0, text_base_position + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+                self.bin_ = self.bin
+
 
     def stop_rec(self):
         # print("=OxO=")
