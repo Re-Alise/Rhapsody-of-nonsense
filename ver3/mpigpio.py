@@ -20,6 +20,8 @@ class pi():
         return '無法讀取'
     def callback(self, *args):
         return
+    def set_servo_pulsewidth(self, *args):
+        return
 
 def pulse(*args):
     return

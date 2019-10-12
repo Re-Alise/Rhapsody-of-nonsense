@@ -119,7 +119,7 @@ class Record(Thread):
                 if obj[0] == 0:
                     cv2.line(self.bin, obj[1], obj[2], (0, 0, 255), 3)
                 elif obj[0] == 1:
-                    pass
+                    cv2.rectangle(self.bin, obj[1], obj[2], (0, 255, 0), 1)
 
             elif obj_type == str:
                 i = int(obj[0])
