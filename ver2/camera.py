@@ -20,6 +20,7 @@ class Record(Thread):
         self.write_count = 0
         self.replay_path = replay_path
         self.feedback_queue = feedback_queue
+        self.bin = np.zeros([240, 320, 3],dtype=np.uint8)
         try:
             self.init_capture()
         except:
@@ -88,6 +89,24 @@ class Record(Thread):
             #     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
             # elif not len(self.replay_path) > 1:
             #     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+
+            text_base_position = 140
+            i = 0
+            while not self.feedback_queue.empty():
+                obj = self.feedback_queue.get()
+                obj_type = type(obj)
+                if obj_type == np.ndarray:
+                    self.bin = cv2.cvtColor(obj, cv2.COLOR_GRAY2BGR)
+                elif obj_type == tuple:
+                    if obj[0] == 0:
+                        cv2.line(self.bin, (160, obj[1]), (obj[2], obj[1]), (0, 0, 255), 3)
+                    elif obj[0] == 1:
+                        cv2.line(self.bin, (obj[1], 120), (obj[1], obj[2]), (0, 0, 255), 3)
+
+                elif obj_type == str:
+                    cv2.putText(self.bin, obj, (0, text_base_position + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
+                    i += 1
+            
             self.read_count += 1
             while self.output_queue.full():
                 if self.replay_path:
@@ -98,20 +117,25 @@ class Record(Thread):
                     except:
                         pass
             self.output_queue.put(frame)
+
             if ret == True and not self.replay_path:
                 if self.save:
-                    if self.feedback_queue:
-                        try:
-                            processed_frame = self.feedback_queue.get(timeout=0.001)
-                        except:
-                            processed_frame = MASK_ALL = np.zeros([240, 320, 3],dtype=np.uint8)
+                    try:
+                        self.out.write(cv2.hconcat([frame, self.bin]))
+                    except:
+                        pass
+                    # if self.feedback_queue:
+                    #     try:
+                    #         processed_frame = self.feedback_queue.get(timeout=0.001)
+                    #     except:
+                    #         processed_frame = MASK_ALL = np.zeros([240, 320, 3],dtype=np.uint8)
 
-                        # print('frame shape:', frame.shape, 'feedback shape:', processed_frame.shape)
-                        self.out.write(cv2.hconcat([frame, processed_frame]))
-                    else:
-                        processed_frame = MASK_ALL = np.zeros([240, 320, 3],dtype=np.uint8)
-                        # print('frame shape:', frame.shape, 'feedback shape:', processed_frame.shape)
-                        self.out.write(cv2.hconcat([frame, processed_frame]))
+                    #     # print('frame shape:', frame.shape, 'feedback shape:', processed_frame.shape)
+                    #     self.out.write(cv2.hconcat([frame, processed_frame]))
+                    # else:
+                    #     processed_frame = MASK_ALL = np.zeros([240, 320, 3],dtype=np.uint8)
+                    #     # print('frame shape:', frame.shape, 'feedback shape:', processed_frame.shape)
+                    #     self.out.write(cv2.hconcat([frame, processed_frame]))
 
                 self.write_count += 1
                 # th0, th1, th2, th3 = self.threshold(frame)

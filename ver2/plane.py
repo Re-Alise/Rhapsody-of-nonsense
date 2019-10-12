@@ -60,13 +60,21 @@ class Plane():
             self.lidar = TFMiniLidar(TF_PORT, debug=DEBUG)
         except:
             raise IOError
-        print('all peripheral inited')
         self.hight = 130
         PPM(self.output_queue, 13)
+
+        # sanity check
+        sleep(0.1)
+        print('Sanity check -- Sonar value:', self.sonic.value)
+        if self.sonic.value == 0:
+            print('Error: Sonar is not working')
+            raise IOError
+
+        print('all peripheral inited')
         # -------------------------
         self.yaw_pid = PID(kp=0.7)
-        self.pitch_pid = PID(kp=0.7)
-        self.roll_pid = PID(kp=0.7)
+        self.pitch_pid = PID(kp=0.35, ki=0.3, kd=0.35)
+        self.roll_pid = PID(kp=0.55, ki=0.3, kd=0.25)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
@@ -84,8 +92,10 @@ class Plane():
         
     @verbose
     def mc(self, mode):
-        if mode == DC.OpticsFlow:
+        if mode == DC.LOITER:
             self.output([(DC.MODE, -400)])
+        elif mode == DC.ALT_HOLD:
+            self.output([(DC.MODE, -100)])
         else:
             self.output([(DC.MODE, 400)])
         # 保證切換完畢
@@ -125,7 +135,7 @@ class Plane():
     def land(self):
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, -LAND_SPEED), (DC.YAW, 0),])
         # print(self.sonic.value)
-        while self.sonic.value>8:
+        while self.sonic.value > 8 or self.lidar.value > 35:
             # print(self.sonic.value)
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, -400)])

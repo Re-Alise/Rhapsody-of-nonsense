@@ -91,9 +91,10 @@ class TFMiniLidar(Thread):
             print('TF mini lidar error: Port could not open')
             raise IOError
 
+        # sanity check
         try:
             test = measure(self.s)
-            print('Test measure:', test)
+            print('Sanity check -- LiDAR value:', test)
         except SerialException:
             print('Serial connection is broken')
             raise IOError

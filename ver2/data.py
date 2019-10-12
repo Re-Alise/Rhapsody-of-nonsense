@@ -9,8 +9,11 @@ class DC(IntEnum):
     YAW = 3
     MODE = 4 # -50 auto, 50 manual
     AUTO = 5
-    OpticsFlow = auto()
-    Manual = auto()
+
+    # Flight modes
+    LOITER = auto()
+    ALT_HOLD = auto()
+    STABLIZE = auto()
 
 class STATE(IntEnum):
     STABLE_K = auto()
@@ -22,6 +25,7 @@ class PIN(IntEnum):
     OUTPUT = 13
     BUZZER = 11
     STATE = 6
+    BOX = 5
 
 class COLOR(IntEnum):
     K = 3

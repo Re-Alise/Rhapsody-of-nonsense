@@ -59,7 +59,9 @@ if __name__ == '__main__':
         print('Initialization failed')      
         exit()                       
     print('init finish-------------------------------')
+    # plane.mc(DC.ALT_HOLD)
     while 1:
+        # continue
         try:
             start_signal = gpio.read(PIN.STATE)
             if start_signal and not mode_auto:
@@ -69,15 +71,15 @@ if __name__ == '__main__':
                 print('mission start')
                 controller.record.start()
                 plane.arm()
-                plane.mc(DC.OpticsFlow)
+                plane.mc(DC.LOITER)
                 # plane.take_off(65, 24*8)
                 # plane.take_off(120, 10*8)
-                plane.take_off(55, 16*8)
-                plane.take_off(70, 10*8)
+                plane.take_off(45, 16*8)
+                plane.take_off(60, 10*8)
                 plane.idle(3)
-                controller.mission_start()
+                # controller.mission_start()
                 plane.land()
-                plane.mc(DC.Manual)
+                plane.mc(DC.STABLIZE)
                 plane.disarm()
                 controller.stop()
                 print('mission completed')
