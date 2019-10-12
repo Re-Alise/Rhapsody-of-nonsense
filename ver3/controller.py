@@ -57,6 +57,15 @@ class Controller():
             self.stop()
         pass
 
+    def loop(self, func_loop, func_condition, sec=10):
+        now = time()
+        while time()-now<sec | func_condition():
+            if self._stop:
+                break
+            self._get_frame()
+            func_loop()
+            self.frame_finish()
+
     def forward(self, pitch, sec=10):
         now = time()
         while time()-now<sec:
