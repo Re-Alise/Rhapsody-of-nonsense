@@ -16,6 +16,7 @@ class PID():
         self.min = -50*8
         self.max = 50*8
         self.ITerm = 0
+        self.debug = debug
 
         self.debug = debug
 
@@ -32,7 +33,7 @@ class PID():
         if (delta_time >= SAMPLE_TIME):
             PTerm = self.Kp * error
             self.ITerm += self.Ki * error * delta_time
-            if error * self.last_error < 0 or abs(self.last_error)>abs(error) and abs(error)< 20:
+            if error * self.last_error < 0 or (abs(self.last_error) > abs(error) and abs(error) < 30):
                 self.ITerm = 0
             
             # Iterm limit
@@ -52,7 +53,7 @@ class PID():
 
             self.output = int(PTerm + self.ITerm + DTerm)
             if self.debug:
-                print('PID : ', error, PTerm, self.ITerm, DTerm, self.output)
+                print('PID values:', error, PTerm, self.ITerm, (self.Kd * DTerm), self.output)
         return self.output
 
     def setkp(self, n):

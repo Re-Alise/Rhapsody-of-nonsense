@@ -53,10 +53,17 @@ class Plane():
                 raise IOError
         self.hight = 130
         PPM(self.output_queue, 13)
+
+        # sanity check
+        sleep(0.1)
+        print('Sanity check -- Sonar value:', self.sonic.value)
+        if self.sonic.value == 0:
+            print('Error: Sonar is not working')
+            raise IOError
         # -------------------------
-        self.yaw_pid = PID(kp=0.7)
-        self.pitch_pid = PID(kp=0.35, ki=0.3, kd=0.35)
-        self.roll_pid = PID(kp=0.55, ki=0.3, kd=0.25)
+        self.yaw_pid = PID(kp=1)
+        self.pitch_pid = PID(kp=1)
+        self.roll_pid = PID(kp=0, ki=0.45, kd=0, debug=True)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose

@@ -100,11 +100,11 @@ class Controller():
             # check break condition
             # ret, _, roll, yaw = self._stabilize()
             # ret, pitch_fector, roll, yaw = self._along()
-            _, yy, _, thr = self._find_center(self.frame_new, MASK_BREAK)
-            self.feedback_queue.put(1, 160, yy)
+            # _, yy, _, thr = self._find_center(self.frame_new, MASK_BREAK)
+            # self.feedback_queue.put(1, 160, yy)
 
-            # pitch_overrided = int(pitch * pitch_fector)
-            pitch_overrided = pitch + int((yy - 120) * -1.0)
+            # # pitch_overrided = int(pitch * pitch_fector)
+            # pitch_overrided = pitch + int((yy - 120) * -1.0)
             self.plane.update(1, pitch, 0, 0)
             self.fin()
 

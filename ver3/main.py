@@ -42,6 +42,7 @@ def beep(pi):
         buzzer_time = time()
 
 if __name__ == '__main__':
+    print('===============Ver3================')
     if len(sys.argv)>1:
         if sys.argv[1] == 'n':
             save = 0
@@ -53,7 +54,7 @@ if __name__ == '__main__':
         gpio = tool.get_only(pigpio.pi)
         gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
         plane = Plane()
-        controller = Controller(debug=True, save=save)
+        controller = Controller(debug=False, save=save)
         mode_auto = gpio.read(PIN.STATE)      
     except:
         print('!!!init fail')      
@@ -72,14 +73,14 @@ if __name__ == '__main__':
                 print('mission start')
                 controller.record.start()
                 plane.arm()
-                plane.mc(DC.OpticsFlow)
-                plane.take_off(70, 22)
-                plane.take_off(120, 10)
-                # plane.idle(5)
+                plane.mc(DC.LOITER)
+                plane.take_off(45, 16*8)
+                plane.take_off(90, 10*8)
+                plane.idle(2)
                 controller.mission_start()
 
                 plane.land()
-                plane.mc(DC.Manual)
+                plane.mc(DC.STABLIZE)
                 plane.disarm()
                 controller.stop()
                 print('mission completed')
