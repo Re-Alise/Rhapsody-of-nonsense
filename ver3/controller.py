@@ -141,7 +141,7 @@ class Controller():
         return False
 
     def forward(self):
-        pitch = 100
+        pitch = 120
         # check break condition
         # ret, _, roll, yaw = self._stabilize()
         ret, pitch_fector, roll, yaw = self._along()
