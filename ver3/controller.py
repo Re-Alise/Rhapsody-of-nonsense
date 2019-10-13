@@ -25,9 +25,12 @@ MASK_FORWARD = (115, 45, 0, 75)
 MASK_LINE_MIDDLE = (None, 30, 0, 0)
 MASK_OWO = (40, None, 0, 0)
 
+def condition(func):
+    pass
+
 @only
 class Controller():
-    def __init__(self, source_path=None, save_path=None, save=1, debug=0):
+    def __init__(self, source_path=None, =None, save=1, debug=0):
         """debug: manual read video (" ", "x"), and no use PIGPIO"""
         self.debug = debug
         self.frame_queue = Queue(1)
@@ -57,12 +60,16 @@ class Controller():
             self.stop()
         pass
 
+    def const(self)
+
     def loop(self, func_loop, func_condition, sec=10):
         now = time()
-        while time()-now<sec | func_condition():
+        while time()-now<:
             if self._stop:
                 break
             self._get_frame()
+            if secfunc_condition():
+                break
             func_loop()
             self.frame_finish()
 
@@ -288,10 +295,10 @@ class Controller():
         
         if data == 'x':
             self.feedback_queue.put((0, (center_point_x, center_point_y), (int(cX), center_point_y)))
-            return center_point_x - cX
+            return cX - center_point_x
         if data == 'y':
             self.feedback_queue.put((0, (center_point_x, center_point_y), (center_point_x, int(cY))))
-            return cY - center_point_y
+            return center_point_y - cY
         if data == 'w':
             return sumW
 
