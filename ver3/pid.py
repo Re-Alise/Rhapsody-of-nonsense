@@ -53,11 +53,7 @@ class PID():
 
             self.output = int(PTerm + self.ITerm + DTerm)
             if self.debug:
-<<<<<<< HEAD
                 print('PID values:', error, PTerm, self.ITerm, (self.Kd * DTerm), self.output)
-=======
-                print('PID : ', error, PTerm, self.ITerm, DTerm, self.output)
->>>>>>> 2d7df4e974775277c5d042ff22ee860690c63753
         return self.output
 
     def setkp(self, n):

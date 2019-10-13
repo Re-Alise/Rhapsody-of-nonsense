@@ -78,12 +78,11 @@ class Controller():
         #     self.stop()
         # pass
 
-    def const(self)
+    # def const(self)
 
     def loop(self, func_loop, func_condition, sec=10):
         condition_count = 0
         now = time()
-<<<<<<< HEAD
         while time()-now<sec:
             if self._stop:
                 break
@@ -94,13 +93,6 @@ class Controller():
                 condition_count = 0
             
             if condition_count > 10:
-=======
-        while time()-now<:
-            if self._stop:
-                break
-            self._get_frame()
-            if secfunc_condition():
->>>>>>> 2d7df4e974775277c5d042ff22ee860690c63753
                 break
             func_loop()
             self.frame_finish()
