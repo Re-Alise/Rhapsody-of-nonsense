@@ -34,8 +34,8 @@ MASK_BUTTON[121:240, 0:320] = 255
 MASK_LINE_MIDDLE = np.zeros([240, 320],dtype=np.uint8)
 MASK_LINE_MIDDLE[90:150, 40:280] = 255
 
-MASK_OWO = np.zeros([240, 320],dtype=np.uint8)
-MASK_OWO[:, 120:200] = 255
+MASK_BREAK = np.zeros([240, 320],dtype=np.uint8)
+MASK_BREAK[:, 120:200] = 255
 
 MASK_RIGHT = np.zeros([240, 320],dtype=np.uint8)
 MASK_RIGHT[106:320, 0:240] = 255
@@ -46,7 +46,7 @@ MASK_RIGHT[106:320, 0:240] = 255
 class Controller():
     def __init__(self, debug=0, replay_path=None, save=1):
         self.frame_queue = Queue(1)
-        self.feedback_queue = Queue(1)
+        self.feedback_queue = Queue()
         try:
             self.record = Record(self.frame_queue, replay_path=replay_path, save=save, feedback_queue=self.feedback_queue)
             self.box = Box()
@@ -75,10 +75,13 @@ class Controller():
             self.stop()
         else:
 
-            self.plane.mc(DC.ALT_HOLD)
+            # self.plane.mc(DC.ALT_HOLD)
+            self.plane.mc(DC.LOITER)
             # self.stable(15)
-            # self.forward(0, 5)
-            self.pitch_test(0, 15)
+            # self.forward(0, 15)
+            self.pitch_test(160, 6)
+            self.pitch_test(0, 6)
+            self.pitch_test(160, 6)
             self.plane.mc(DC.LOITER)
             # self.stop()
         pass
@@ -97,12 +100,12 @@ class Controller():
             # check break condition
             # ret, _, roll, yaw = self._stabilize()
             # ret, pitch_fector, roll, yaw = self._along()
-            _, yy, _, thr = self._find_center(self.frame_new, MASK_OWO)
+            _, yy, _, thr = self._find_center(self.frame_new, MASK_BREAK)
             self.feedback_queue.put(1, 160, yy)
 
             # pitch_overrided = int(pitch * pitch_fector)
             pitch_overrided = pitch + int((yy - 120) * -1.0)
-            self.plane.update(1, pitch_overrided, 0, 0)
+            self.plane.update(1, pitch, 0, 0)
             self.fin()
 
 
@@ -113,11 +116,11 @@ class Controller():
             # check break condition
             # ret, _, roll, yaw = self._stabilize()
             ret, pitch_fector, roll, yaw = self._along()
-            _, yy, _, thr = self._find_center(self.frame_new, MASK_OWO)
+            _, yy, _, thr = self._find_center(self.frame_new, MASK_BREAK)
             self.feedback_queue.put(1, 160, yy)
 
             pitch_overrided = int(pitch * pitch_fector)
-            if yy > 150:
+            if yy > 120:
                 pitch_overrided += int((yy - 120) * -1.0)
             else:
                 pitch_overrided = int(pitch * pitch_fector)
@@ -145,7 +148,7 @@ class Controller():
             # check break condition
             # ret, _, roll, yaw = self._stabilize()
             ret, pitch_fector, roll, yaw = self._along()
-            _, yy, _, thr = self._find_center(self.frame_new, MASK_OWO)
+            _, yy, _, thr = self._find_center(self.frame_new, MASK_BREAK)
             self.feedback_queue.put(1, 160, yy)
 
             pitch_overrided = int(pitch * pitch_fector)
@@ -167,7 +170,7 @@ class Controller():
                     continue
             # Testing
             # self.plane.update(ret, pitch_overrided, roll, yaw)
-            self.plane.update(ret, pitch, roll, 0)
+            self.plane.update(ret, 0, roll, 0)
             self.fin()
 
     def stable(self, sec=10):
@@ -231,6 +234,16 @@ class Controller():
     #     else:
     #         return 0
 
+    def convert(self, frame):
+        """ an amazing threshold function"""
+        frame = cv2.GaussianBlur(frame, (25, 25), 0)
+        r = frame[:,:,2]
+        g = frame[:,:,1]
+        b = frame[:,:,0]
+        c = b-r+200
+        _, c_thr = cv2.threshold(b, 180, 255, cv2.THRESH_BINARY_INV)
+        return c_thr
+
     def detect(self, frame):
         """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
         """
@@ -267,10 +280,12 @@ class Controller():
         r = frame[:,:,2]
         b = frame[:, :, 0]
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        _, gray_ = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
+        # _, gray_ = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
+        _, gray_ = cv2.threshold(gray, 70, 255, cv2.THRESH_BINARY_INV)
         c = b - r + 180
         c = np.asarray(c, np.uint8)
         _, c_ = cv2.threshold(c, 160, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        # _, c_ = cv2.threshold(c, 150, 255, cv2.THRESH_BINARY)
         binarized_frame = np.bitwise_and(c_, gray_)
         self.feedback_queue.put(binarized_frame)
         return binarized_frame
