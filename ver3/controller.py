@@ -57,18 +57,24 @@ class Controller():
         # self.pitch_test(0, 8)
         # self.pitch_test(160, 8)
         # self.forward_backup(100, 20)
-        self.plane.update(1, 100, 0, 0)
-        sleep(1)
+        self.plane.update(1, 90, 0, 0)
+        self.loop(self.pause, sec=1)
         self.loop(self.forward, self.forward_condition, sec=30)
-        self.plane.update(1, 0, 0, 0)
-        sleep(3)
-        # self.plane.update(1, 0, 0, -100)
-        # sleep(2)
-        # self.plane.update(1, 100, 0, 0)
-        # sleep(1)
+        self.plane.update(1, -20, 0, 0)
+        self.loop(self.pause, sec=3)
         self.loop(self.forward, self.forward_condition, sec=30)
-        self.plane.update(1, 0, 0, 0)
-        sleep(3)
+        self.plane.update(1, -20, 0, 0)
+        self.loop(self.pause, sec=3)
+        self.loop(self.forward, self.forward_condition, sec=30)
+        self.plane.update(1, -20, 0, 0)
+        self.loop(self.pause, sec=3)
+        self.loop(self.forward, self.forward_condition, sec=30)
+        self.plane.update(1, -20, 0, 0)
+        self.loop(self.pause, sec=3)
+        self.loop(self.forward, self.forward_condition, sec=30)
+        self.plane.update(1, -20, 0, 0)
+        self.loop(self.pause, sec=3)
+        # sleep(3)
         # if self.debug:
         #     self.forward(30, 20)
         #     self.stop()
@@ -80,22 +86,35 @@ class Controller():
 
     # def const(self)
 
-    def loop(self, func_loop, func_condition, sec=10):
+    def following(self):
+        while True:
+            self.loop(self.forward, self.forward_condition, sec=30)
+            if False:
+                break
+            self.plane.update(1, -20, 0, 0)
+            self.loop(self.pause, sec=3)
+
+
+    def loop(self, func_loop, func_condition=None, sec=10):
         condition_count = 0
         now = time()
         while time()-now<sec:
             if self._stop:
                 break
             self._get_frame()
-            if func_condition():
-                condition_count += 1
-            else:
-                condition_count = 0
-            
+            if func_condition:
+                if func_condition():
+                    condition_count += 1
+                else:
+                    condition_count = 0
+                
             if condition_count > 10:
                 break
             func_loop()
             self.frame_finish()
+
+    def pause(self):
+        self.feedback_queue.put('1===PAUSE===')
 
     def turn_condition(self):
         front_x = self._find_center(mask=MASK_FORWARD, data='x')

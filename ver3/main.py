@@ -76,7 +76,7 @@ if __name__ == '__main__':
                 plane.mc(DC.LOITER)
                 plane.take_off(45, 16*8)
                 plane.take_off(90, 10*8)
-                plane.idle(2)
+                plane.idle(3)
                 controller.mission_start()
 
                 plane.land()

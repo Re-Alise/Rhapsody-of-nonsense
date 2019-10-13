@@ -2,7 +2,7 @@ from time import sleep, time
 
 SAMPLE_TIME = 0.01
 # ITerm limit
-WINDUP_GUARD = 100
+WINDUP_GUARD = 80
 
 class PID():
     def __init__(self, kp=1, ki=0, kd=0, debug=0):
