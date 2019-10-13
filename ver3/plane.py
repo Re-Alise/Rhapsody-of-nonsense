@@ -61,9 +61,9 @@ class Plane():
             print('Error: Sonar is not working')
             raise IOError
         # -------------------------
-        self.yaw_pid = PID(kp=0.2)
-        self.pitch_pid = PID(kp=1.6, kd=0.01)
-        self.roll_pid = PID(kp=0.8, kd=0.01)
+        self.yaw_pid = PID(kp=0.7)
+        self.pitch_pid = PID(kp=0.35, ki=0.3, kd=0.35)
+        self.roll_pid = PID(kp=0.55, ki=0.3, kd=0.25)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
@@ -77,12 +77,15 @@ class Plane():
 
     @verbose
     def reset(self):
+        self.output([(DC.THROTTLE, -400), (DC.YAW, 0)])
         self.output_count = 0
         
     @verbose
     def mc(self, mode):
-        if mode == DC.OpticsFlow:
+        if mode == DC.LOITER:
             self.output([(DC.MODE, -400)])
+        elif mode == DC.ALT_HOLD:
+            self.output([(DC.MODE, -100)])
         else:
             self.output([(DC.MODE, 400)])
         # 保證切換完畢
@@ -120,7 +123,7 @@ class Plane():
     @verbose
     def land(self):
         self.output([(DC.PITCH, 0), (DC.ROLL, 0), (DC.THROTTLE, -LAND_SPEED), (DC.YAW, 0),])
-        while self.sonic.value>8:
+        while self.sonic.value>8 or self.lidar.value > 35:
             sleep(LOOP_INTERNAL)
         self.output([(DC.THROTTLE, -50)])
         while self.sonic.value>4:
