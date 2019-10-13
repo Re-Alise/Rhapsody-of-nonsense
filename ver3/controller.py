@@ -26,6 +26,9 @@ MASK_LINE_MIDDLE = (None, 30, 0, 0)
 MASK_LINE_BACKWARD = (None, 25, 0, -85)
 MASK_OWO = (40, None, 0, 0)
 
+def condition(func):
+    pass
+
 @only
 class Controller():
     def __init__(self, source_path=None, save_path='/home/pi/Desktop/Rhapsody-of-nonsense/records/', save=1, debug=0):
@@ -75,9 +78,12 @@ class Controller():
         #     self.stop()
         # pass
 
+    def const(self)
+
     def loop(self, func_loop, func_condition, sec=10):
         condition_count = 0
         now = time()
+<<<<<<< HEAD
         while time()-now<sec:
             if self._stop:
                 break
@@ -88,6 +94,13 @@ class Controller():
                 condition_count = 0
             
             if condition_count > 10:
+=======
+        while time()-now<:
+            if self._stop:
+                break
+            self._get_frame()
+            if secfunc_condition():
+>>>>>>> 2d7df4e974775277c5d042ff22ee860690c63753
                 break
             func_loop()
             self.frame_finish()

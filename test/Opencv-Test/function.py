@@ -5,7 +5,7 @@ from time import sleep
 
 # IMAGE_SIZE = (240, 320)# 高寬
 IMAGE_SIZE = (320, 240)
-path = "1570932650/"
+path = "1570940397/"
 # path = "./../video/"
 fileName = "original.avi"
 # fileName = "test8.avi"
@@ -23,9 +23,6 @@ def imgand(img1, img2):
 
 def imgor():
     return np.logical_or(img1, img2)
-
-def floor_has_color(frame):
-    pass
 
 # 穩定版
 def detect_light(sframe):
@@ -114,13 +111,19 @@ def test(frame):
     h = hsv[:, :, 0]
     s = hsv[:, :, 1]
     v = hsv[:, :, 2]
-    _, s_ = cv2.threshold(s,180,255,cv2.THRESH_BINARY)
+    _, s_ = cv2.threshold(s,100,255,cv2.THRESH_BINARY)
     # v = np.bitwise_or(s_, v)
     _, v_ = cv2.threshold(s,80,255,cv2.THRESH_BINARY)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    h = hsv[:, :, 0]/180*255-(54-10)*255/180
+    h = np.asarray(h, np.uint8)
+
+
+    _, bb_ = cv2.threshold(h,20,255,cv2.THRESH_BINARY_INV)
     ans1 = cv2.hconcat([r, g, b])
     ans1 = cv2.cvtColor(ans1, cv2.COLOR_GRAY2BGR)
     ans1 = cv2.hconcat([frame, ans1])
-    ans2 = cv2.hconcat([b-r+180, h, s, v])
+    ans2 = cv2.hconcat([b-r+180, s_, s, h])
     ans2 = cv2.cvtColor(ans2, cv2.COLOR_GRAY2BGR)
     ans = cv2.vconcat([ans1, ans2])
     return ans
@@ -195,20 +198,23 @@ def _general_binarization(frame):
     binarized_frame = np.bitwise_and(c_, gray_)
     return binarized_frame
 
-def _mask(two_dia_frame, wight:int =None, hight:int =None, offset_x:int =0, offset_y:int =0, img_size=IMAGE_SIZE):
+def _mask(frame2d, mask=(None, None, 0, 0), img_size=IMAGE_SIZE):
+    """mask -> (width, hight, offset_x, offset_y),width and hight are half value
+    """
+    width, hight, offset_x, offset_y = mask
     mask = np.zeros(img_size,dtype=np.uint8)
     center_point_x = img_size[1]//2 + offset_x
     center_point_y = img_size[0]//2 + offset_y
-    if not hight and not wight:
-        return two_dia_frame
+    if not hight and not width:
+        return frame2d
     elif not hight:
-        x1 = center_point_x-wight
-        x2 = center_point_x+wight
+        x1 = center_point_x-width
+        x2 = center_point_x+width
         y1 = 0
         y2 = img_size[0]
         # vartical
         pass
-    elif not wight:
+    elif not width:
         x1 = 0
         x2 = img_size[1]
         y1 = center_point_y-hight
@@ -216,33 +222,30 @@ def _mask(two_dia_frame, wight:int =None, hight:int =None, offset_x:int =0, offs
         # horz.tal
         pass
     else:
-        x1 = center_point_x-wight
-        x2 = center_point_x+wight
+        x1 = center_point_x-width
+        x2 = center_point_x+width
         y1 = center_point_y-hight
         y2 = center_point_y+hight
     
     mask[y1:y2,x1:x2] = 255
-    masked = np.bitwise_and(two_dia_frame, mask)
+    masked = np.bitwise_and(frame2d, mask)
     return masked
 
 
     pass
 
 
-def _find_center(frame, mask):
-    bined = _general_binarization(frame)
-    thr = cv2.bitwise_and(thr, thr, mask=mask)
-    
-    contours, _ = cv2.findContours(thr,1,2)
+def _find_center(frame2d, mask, data, error_num=10):
+    "mask: (width, hight, offset_x, offset_y),\ndata: 'x', 'y', 'w'"
+    thr =_mask(frame2d, mask=mask)
+
+    center_point_x = IMAGE_SIZE[1]//2 + mask[2]
+    center_point_y = IMAGE_SIZE[0]//2 - mask[3]
     sumX=0
     sumY=0
     sumW=0
-    if len(contours) < 5:
-        self.c -= delta_c
-        if self.c < 0:
-            self.c = 0
-    else:
-        self.c += delta_c
+    
+    contours, _ = cv2.findContours(thr,1,2)
 
     for cnt in contours:
         M=cv2.moments(cnt)
@@ -257,40 +260,57 @@ def _find_center(frame, mask):
     # 全畫面的黑色的中心座標
     if sumW == 0:
         print('Not found')
-        # return -1, -1, 0
-        # return 160, 120, 0, ret_thr
-        # cX = 120
-        # cY = 160
-        cX = self.last_center[0]
-        cY = self.last_center[1]
+        # 因為 很多程式重複使用 故無法繼續使用舊值
+        cX = center_point_x
+        cY = center_point_y
     else:
         cX = sumX/sumW  
         cY = sumY/sumW
-        self.last_center = (cX, cY)
+    
+    if data == 'x':
+        self.feedback_queue.put((0, (center_point_x, center_point_y), (int(cX), center_point_y)))
+        return cX - center_point_x
+    if data == 'y':
+        self.feedback_queue.put((0, (center_point_x, center_point_y), (center_point_x, int(cY))))
+        return center_point_y - cY
+    if data == 'w':
+        return sumW
 
-    if self.debug:
-        # ret_thr = thr
-        # edited = np.copy(thr)
-        # edited = cv2.cvtColor(edited, cv2.COLOR_GRAY2BGR)
-        # cv2.circle(edited, (int(cX), int(cY)), 5, (178, 0, 192), -1)
-        # text_base_position = 140
-        # cv2.putText(edited, 'cX: {}'.format(cX), (0, text_base_position), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-        # cv2.putText(edited, 'cY: {}'.format(cY), (0, text_base_position+20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-        # cv2.putText(edited, 'sumW: {}'.format(sumW), (0, text_base_position+40), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-        # cv2.putText(edited, 'yaw: {}, roll: {}, pitch: {}'.format(self.plane.yaw_pid.output, self.plane.roll_pid.output, self.plane.pitch_pid.output), (0, text_base_position+60), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
-        # while self.feedback_queue.full():
-        #     try:
-        #         self.feedback_queue.get(timeout=0.00001)
-        #     except:
-        #         pass
-        # self.feedback_queue.put(edited)
-        if self.replay_path:
-            cv2.imshow('Replay', cv2.hconcat([frame, edited]))
-            while not cv2.waitKey(0) & 0xFF == ord(' '):
-                sleep(0.1)
+def floor_has_color(frame):
+    # b100, r180, g54
+    frame = cv2.GaussianBlur(frame, gaussian, 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    h = hsv[:, :, 0]
+    s = hsv[:, :, 1]
+    v = hsv[:, :, 2]
+    _, s_ = cv2.threshold(s,100,255,cv2.THRESH_BINARY)
+    hW = _find_center(s_, (None, None, 0, 0), data='w')
+    if hW > 3000:
+        return 1
     else:
-        ret_thr = None
-    return cX, cY, sumW, ret_thr
+        return 0
+
+def detect_floor(frame, color='r'):
+    # b100, r180, g54
+    hRange=10
+    if color=='r':
+        offset=255
+    elif color=='g':
+        offset=54*255/180
+    elif color=='b':
+        offset=100*255/180
+    frame = cv2.GaussianBlur(frame, gaussian, 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    h = hsv[:, :, 0]/180*255-offset+hRange
+    h = np.asarray(h, np.uint8)
+    _, h_ = cv2.threshold(h,2*hRange,255,cv2.THRESH_BINARY_INV)
+    hW = _find_center(h_, (50, 50, 0, 0), data='w')
+    # print(hW)
+    if hW > 3000:
+        return 1
+    else:
+        return 0
+
 
 if __name__ == "__main__":
     try:
@@ -302,8 +322,14 @@ if __name__ == "__main__":
             ret, frame = cap.read()
             if ret:
                 # ....
-                cv2.imshow('Replay', black(frame))
-                print(frame.shape)
+                cv2.imshow('Replay', test(frame))
+                if floor_has_color(frame):
+                    if detect_floor(frame, color='b'):
+                        print('bbbbbb')
+                    if detect_floor(frame, color='r'):
+                        print('rrrrrr')
+                    if detect_floor(frame, color='g'):
+                        print('gggggg')
                 # detect(frame)
                 while 1:
                     inn = cv2.waitKey(0)
