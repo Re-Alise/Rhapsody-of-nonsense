@@ -5,7 +5,7 @@ from time import sleep
 
 # IMAGE_SIZE = (240, 320)# 高寬
 IMAGE_SIZE = (320, 240)
-path = "1570940397/"
+path = "1570952437/"
 # path = "./../video/"
 fileName = "original.avi"
 # fileName = "test8.avi"
@@ -33,27 +33,27 @@ def detect_light(sframe):
     g = sframe[:,:,1]
     b = sframe[:, :, 0]
     a = r-g+220
-    c = b-r+200
+    c = b-r+220
     ans = cv2.hconcat([a, c])
     ans = cv2.cvtColor(ans, cv2.COLOR_GRAY2BGR)
     _, a = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)
     _, c = cv2.threshold(c, 100, 255, cv2.THRESH_BINARY_INV)
     na = cv2.countNonZero(a)
     nb = cv2.countNonZero(c)
-    if na>10000:
-        if nb>5000:
+    if na > 8000:
+        print("R", na, nb)
+        return ans
+    if nb>2000:
+        if na>1800:
             print("G", na, nb)
             return ans
         else:
-            print("R", na, nb)
-            return ans
-    else:
-        if nb>5000:
             print("B", na, nb)
             return ans
-        else:
-            print("XX", na, nb)
-            return ans
+    else:
+        print("XX", na, nb)
+        return ans
+
     return ans
 
 # 測試版
@@ -322,14 +322,14 @@ if __name__ == "__main__":
             ret, frame = cap.read()
             if ret:
                 # ....
-                cv2.imshow('Replay', test(frame))
-                if floor_has_color(frame):
-                    if detect_floor(frame, color='b'):
-                        print('bbbbbb')
-                    if detect_floor(frame, color='r'):
-                        print('rrrrrr')
-                    if detect_floor(frame, color='g'):
-                        print('gggggg')
+                cv2.imshow('Replay', detect_light(frame))
+                # if floor_has_color(frame):
+                #     if detect_floor(frame, color='b'):
+                #         print('bbbbbb')
+                #     if detect_floor(frame, color='r'):
+                #         print('rrrrrr')
+                #     if detect_floor(frame, color='g'):
+                #         print('gggggg')
                 # detect(frame)
                 while 1:
                     inn = cv2.waitKey(0)
