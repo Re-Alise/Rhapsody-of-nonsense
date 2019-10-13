@@ -5,7 +5,7 @@ from time import sleep
 
 # IMAGE_SIZE = (240, 320)# 高寬
 IMAGE_SIZE = (320, 240)
-path = "1570714029/"
+path = "1570932650/"
 # path = "./../video/"
 fileName = "original.avi"
 # fileName = "test8.avi"
@@ -99,7 +99,7 @@ def black(frame):
     b = frame[:,:,0]
     c = b-r+180
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, thr = cv2.threshold(c,150,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+    _, thr = cv2.threshold(gray,70,255,cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
     # thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 2)
     # thr = cv2.cvtColor(thr, cv2.COLOR_GRAY2BGR)
     return cv2.hconcat([gray, thr])

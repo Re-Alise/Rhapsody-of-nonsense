@@ -59,13 +59,13 @@ class Record(Thread):
             time_str = str(int(time()))
             # os.mkdir()
             print(2)
-            # self.out = cv2.VideoWriter(self.save_path + time_str + '.avi', fourcc,
-            #                 30, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
-            
+            self.out = cv2.VideoWriter(self.save_path + time_str + '.avi', fourcc,
+                            30, (IMAGE_SIZE[1]*2, IMAGE_SIZE[0]))
+            print('save as:', self.save_path + time_str + '.avi')
             time_str = str(int(time()))
             # os.mkdir(time_str)
-            self.out = cv2.VideoWriter('C:\\Users\\YUMI.Lin\\Desktop\\testVideo\\' + time_str + '.avi', fourcc,
-                30.0, (IMAGE_SIZE[1] * 2, IMAGE_SIZE[0]))
+            # self.out = cv2.VideoWriter('C:\\Users\\YUMI.Lin\\Desktop\\testVideo\\' + time_str + '.avi', fourcc,
+            #     30.0, (IMAGE_SIZE[1] * 2, IMAGE_SIZE[0]))
 
 
         if not self.cap.isOpened():
@@ -83,11 +83,11 @@ class Record(Thread):
                 self.process()
                 if isinstance(self.source_path, str):
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-                    if self.save:
-                        # print(frame.shape)
-                        self.out.write(cv2.hconcat([frame, self.bin_]))
-                        # print(cv2.hconcat([frame, self.bin]).shape)
-                    self.write_count += 1
+                if self.save:
+                    # print(frame.shape)
+                    self.out.write(cv2.hconcat([frame, self.bin_]))
+                    # print(cv2.hconcat([frame, self.bin]).shape)
+                self.write_count += 1
                 self.read_count += 1
 
                 # queue output
@@ -115,7 +115,7 @@ class Record(Thread):
             if obj_type == np.ndarray:
                 self.bin = cv2.cvtColor(obj, cv2.COLOR_GRAY2BGR)
             elif obj_type == tuple:
-                print(obj)
+                # print(obj)
                 if obj[0] == 0:
                     cv2.line(self.bin, obj[1], obj[2], (0, 0, 255), 3)
                 elif obj[0] == 1:

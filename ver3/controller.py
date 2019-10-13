@@ -304,8 +304,8 @@ class Controller():
 if __name__ == '__main__':
     try:
         # c = Controller(source_path=0, debug=1, save=0)
-        # c = Controller(source_path='video/test1.avi', debug=1, save=0)
-        c = Controller(source_path='C:\\Users\\YUMI.Lin\\Desktop\\video\\test8.avi', debug=1, save=1, save_path='C:\\Users\\YUMI.Lin\\Desktop\\testVideo\\')
+        c = Controller(source_path=2, debug=1, save=1, save_path='videooutput/')
+        # c = Controller(source_path='C:\\Users\\YUMI.Lin\\Desktop\\video\\test8.avi', debug=1, save=1, save_path='C:\\Users\\YUMI.Lin\\Desktop\\testVideo\\')
         print('~~~')
     except Exception as e:
         print(e)
