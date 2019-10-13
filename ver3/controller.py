@@ -58,7 +58,7 @@ class Controller():
         # self.pitch_test(160, 8)
         # self.forward_backup(100, 20)
         self.plane.update(1, 100, 0, 0)
-        sleep(1)
+        self.loop(self.pause, None, 3)
         self.loop(self.forward, self.forward_condition, sec=30)
         self.plane.update(1, 0, 0, 0)
         sleep(3)
@@ -87,15 +87,19 @@ class Controller():
             if self._stop:
                 break
             self._get_frame()
-            if func_condition():
-                condition_count += 1
-            else:
-                condition_count = 0
+            if func_condition:
+                if func_condition():
+                    condition_count += 1
+                else:
+                    condition_count = 0
             
             if condition_count > 10:
                 break
             func_loop()
             self.frame_finish()
+    
+    def pause(self):
+        self.feedback_queue.put('1PAUSE')
 
     def turn_condition(self):
         front_x = self._find_center(mask=MASK_FORWARD, data='x')
@@ -239,10 +243,10 @@ class Controller():
     def detect(self, frame):
         """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
         """
-        sframe = cv2.GaussianBlur(frame, (13, 13), 0)
-        r = sframe[:,:,2]
-        g = sframe[:,:,1]
-        b = sframe[:, :, 0]
+        frame = cv2.GaussianBlur(frame, (13, 13), 0)
+        r = frame[:,:,2]
+        g = frame[:,:,1]
+        b = frame[:, :, 0]
         a = r-g+220
         c = b-r+220
         ans = cv2.hconcat([a, c])
@@ -267,15 +271,76 @@ class Controller():
                 return 'X'
         return ans
 
+    def condition_has_light(self):
+    """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
+    """
+        frame = self.frame_new
+        r = frame[:,:,2]
+        g = frame[:,:,1]
+        b = frame[:, :, 0]
+        a = r-g+220
+        c = b-r+220
+        _, a = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)
+        _, c = cv2.threshold(c, 100, 255, cv2.THRESH_BINARY_INV)
+        na = cv2.countNonZero(a)
+        nb = cv2.countNonZero(c)
+        if na > 8000:
+            # print("R", na, nb)
+            return 1
+        if nb>2000:
+            if na>1800:
+                # print("G", na, nb)
+                return 2
+            else:
+                # print("B", na, nb)
+                return 3
+        else:
+            # print("XX", na, nb)
+            return 0
+
+    def condition_has_color(self):
+        hsv = cv2.cvtColor(self.frame_new, cv2.COLOR_BGR2HSV)
+        h = hsv[:, :, 0]
+        s = hsv[:, :, 1]
+        v = hsv[:, :, 2]
+        _, s_ = cv2.threshold(s,100,255,cv2.THRESH_BINARY)
+        hW = _find_center(s_, (None, None, 0, 0), data='w')
+        if hW > 3000:
+            return 1
+        else:
+            return 0
+        
+    def condition_find_color(self):
+        # b100, r180, g54
+        hRange=10
+        if self.color=='r':
+            offset=255
+        elif self.color=='g':
+            offset=54*255/180
+        elif self.color=='b':
+            offset=100*255/180
+        hsv = cv2.cvtColor(self.frame_new, cv2.COLOR_BGR2HSV)
+        h = hsv[:, :, 0]/180*255-offset+hRange
+        h = np.asarray(h, np.uint8)
+        _, h_ = cv2.threshold(h,2*hRange,255,cv2.THRESH_BINARY_INV)
+        hW = self._find_center(h_, (50, 50, 0, 0), data='w')
+        # print(hW)
+        if hW > 3000:
+            return 1
+        else:
+            return 0
+
+
+
     def _get_frame(self):
         frame = self.frame_queue.get()
-        self.frame_new = frame
         self.binarized_frame = self._binarization_general(frame)
         # self.binarized_frame = self._binarization_low_light(frame)
         self.feedback_queue.put(self.binarized_frame)
 
     def _binarization_general(self, frame):
         frame = cv2.GaussianBlur(frame, (13, 13), 0)
+        self.frame_new = frame
         r = frame[:,:,2]
         b = frame[:, :, 0]
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
