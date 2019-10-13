@@ -21,13 +21,14 @@ IMAGE_SIZE = (240, 320) # 高寬
 MASK_ALL = (None, None, 0, 0)
 MASK_YAW_UP = (120, 40, 0, 80)
 MASK_YAW_DOWN = (120, 40, 0, -80)
-MASK_FORWARD = (115, 45, 0, 75)
+MASK_FORWARD = (None, 25, 0, 85)
 MASK_LINE_MIDDLE = (None, 30, 0, 0)
+MASK_LINE_BACKWARD = (None, 25, 0, -85)
 MASK_OWO = (40, None, 0, 0)
 
 @only
 class Controller():
-    def __init__(self, source_path=None, save_path=None, save=1, debug=0):
+    def __init__(self, source_path=None, save_path='/home/pi/Desktop/Rhapsody-of-nonsense/records/', save=1, debug=0):
         """debug: manual read video (" ", "x"), and no use PIGPIO"""
         self.debug = debug
         self.frame_queue = Queue(1)
@@ -49,24 +50,118 @@ class Controller():
 
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
-        if self.debug:
-            self.forward(30, 20)
-            self.stop()
-        else:
-            self.stable(20)
-            self.stop()
-        pass
+        # self.pitch_test(160, 8)
+        # self.pitch_test(0, 8)
+        # self.pitch_test(160, 8)
+        # self.forward_backup(100, 20)
+        self.plane.update(1, 100, 0, 0)
+        sleep(1)
+        self.loop(self.forward, self.forward_condition, sec=30)
+        self.plane.update(1, 0, 0, 0)
+        sleep(3)
+        # self.plane.update(1, 0, 0, -100)
+        # sleep(2)
+        # self.plane.update(1, 100, 0, 0)
+        # sleep(1)
+        self.loop(self.forward, self.forward_condition, sec=30)
+        self.plane.update(1, 0, 0, 0)
+        sleep(3)
+        # if self.debug:
+        #     self.forward(30, 20)
+        #     self.stop()
+        # else:
+            
+        #     self.stable(20)
+        #     self.stop()
+        # pass
 
     def loop(self, func_loop, func_condition, sec=10):
+        condition_count = 0
         now = time()
-        while time()-now<sec | func_condition():
+        while time()-now<sec:
             if self._stop:
                 break
             self._get_frame()
+            if func_condition():
+                condition_count += 1
+            else:
+                condition_count = 0
+            
+            if condition_count > 10:
+                break
             func_loop()
             self.frame_finish()
 
-    def forward(self, pitch, sec=10):
+    def turn_condition(self):
+        front_x = self._find_center(mask=MASK_FORWARD, data='x')
+        print('front x', front_x)
+        if front_x > 15:
+            return True
+
+        return False
+
+    def turn(self):
+        pitch = 0
+        # check break condition
+        # ret, _, roll, yaw = self._stabilize()
+        ret, pitch_fector, roll, yaw = self._along()
+        # if self.debug:
+        # print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch_overrided, pitch_fector, roll, yaw))
+            # print(ret, pitch, roll, yaw, sep='\t')
+        # Testing
+        # self.plane.update(ret, pitch_overrided, roll, yaw)
+        self.plane.update(ret, pitch, 0, yaw)
+
+    def pitch_test(self, pitch, sec=10):
+        now = time()
+        while time()-now<sec:
+            self._get_frame()
+            # check break condition
+            # ret, _, roll, yaw = self._stabilize()
+            # ret, pitch_fector, roll, yaw = self._along()
+            # _, yy, _, thr = self._find_center(self.frame_new, MASK_BREAK)
+            # self.feedback_queue.put(1, 160, yy)
+
+            # # pitch_overrided = int(pitch * pitch_fector)
+            # pitch_overrided = pitch + int((yy - 120) * -1.0)
+            self.plane.update(1, pitch, 0, 0)
+            self.frame_finish()
+
+    def forward_condition(self):
+        yaw_weight = self._find_center(mask=MASK_FORWARD, data='w')
+        print('yaw weight', yaw_weight)
+        if yaw_weight < 10:
+            return True
+
+        return False
+
+    def forward(self):
+        pitch = 100
+        # check break condition
+        # ret, _, roll, yaw = self._stabilize()
+        ret, pitch_fector, roll, yaw = self._along()
+        pitch_ = self._find_center(mask=MASK_OWO, data='y')
+
+        pitch_overrided = int(pitch * pitch_fector)
+        # if yy > 150:
+        #     pitch_overrided += int(pitch_ * -1.0)
+        # else:
+        #     pitch_overrided = int(pitch * pitch_fector)
+
+        if self.detect(self.frame_new) == 'R':
+            self.box.drop()
+            # pitch_overrided = 0
+        else:
+            self.box.close()
+        
+        # if self.debug:
+        print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch_overrided, pitch_fector, roll, yaw))
+            # print(ret, pitch, roll, yaw, sep='\t')
+        # Testing
+        # self.plane.update(ret, pitch_overrided, roll, yaw)
+        self.plane.update(ret, pitch_overrided, roll, yaw)
+
+    def forward_backup(self, pitch=100, sec=10):
         now = time()
         while time()-now<sec:
             if self._stop:
@@ -89,12 +184,12 @@ class Controller():
             else:
                 self.box.close()
             
-            if self.debug:
-                print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch_overrided, pitch_fector, roll, yaw))
+            # if self.debug:
+            print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch_overrided, pitch_fector, roll, yaw))
                 # print(ret, pitch, roll, yaw, sep='\t')
             # Testing
             # self.plane.update(ret, pitch_overrided, roll, yaw)
-            self.plane.update(ret, pitch, roll, 0)
+            self.plane.update(ret, pitch_overrided, roll, yaw)
             self.frame_finish()
 
 
@@ -119,14 +214,22 @@ class Controller():
 
     def _along(self, color='k'):
         yaw = self._find_center(mask=MASK_FORWARD, data='x')
-        roll = self._find_center(mask=MASK_LINE_MIDDLE, data='x')
-        # pitch_fector = min(50, (50 - abs(yaw))) / max(50, abs(yaw))
-        if abs(yaw) > 40:
-            # pitch_fector = 0.3
-            pitch_fector = 1
+        yaw_weight = self._find_center(mask=MASK_FORWARD, data='w')
+        # roll = self._find_center(mask=MASK_LINE_MIDDLE, data='x')
+        roll = self._find_center(mask=MASK_LINE_BACKWARD, data='x')
+
+        # yaw-roll for parallelity
+        yaw_overrided = yaw - roll
+        if abs(yaw_overrided) > 40:
+            pitch_fector = 0.5
+            # pitch_fector = 1
         else:
             pitch_fector = 1
-        return 1, pitch_fector, roll, yaw
+
+        if yaw_weight < 10:
+            pitch_fector = 0.5
+            # yaw_overrided = -90
+        return 1, pitch_fector, roll, yaw_overrided
 
     def detect(self, frame):
         """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
@@ -288,15 +391,15 @@ class Controller():
         
         if data == 'x':
             self.feedback_queue.put((0, (center_point_x, center_point_y), (int(cX), center_point_y)))
-            return center_point_x - cX
+            return cX - center_point_x
         if data == 'y':
             self.feedback_queue.put((0, (center_point_x, center_point_y), (center_point_x, int(cY))))
-            return cY - center_point_y
+            return center_point_y - cY
         if data == 'w':
             return sumW
 
     def frame_finish(self):
-        self.feedback_queue.put('0yaw: {}, roll: {}, pitch: {}'.format(self.plane.yaw_pid.output, self.plane.roll_pid.output, self.plane.pitch_pid.output))
+        self.feedback_queue.put('0yaw: {:>6d}, roll: {:>6d}, pitch: {:>6d}'.format(self.plane.yaw_pid.output, self.plane.roll_pid.output, self.plane.pitch_pid.output))
 
     def stop(self):
         self.record.stop_rec()

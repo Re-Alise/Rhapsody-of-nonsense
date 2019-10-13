@@ -5,7 +5,7 @@ SAMPLE_TIME = 0.01
 WINDUP_GUARD = 100
 
 class PID():
-    def __init__(self, kp=1, ki=0, kd=0):
+    def __init__(self, kp=1, ki=0, kd=0, debug=0):
         self.Kp = kp
         self.Ki = ki
         self.Kd = kd
@@ -16,6 +16,7 @@ class PID():
         self.min = -50*8
         self.max = 50*8
         self.ITerm = 0
+        self.debug = debug
 
     def update(self, error=None):
         if not error:
@@ -29,18 +30,18 @@ class PID():
         # min working interval
         if (delta_time >= SAMPLE_TIME):
             PTerm = self.Kp * error
-            self.ITerm += error * delta_time
-            if error * self.last_error < 0:
+            self.ITerm += self.Ki * error * delta_time
+            if error * self.last_error < 0 or (abs(self.last_error) > abs(error) and abs(error) < 30):
                 self.ITerm = 0
             
             # Iterm limit
-            if (self.ITerm < WINDUP_GUARD):
-                self.ITerm = WINDUP_GUARD
+            if (self.ITerm < -WINDUP_GUARD):
+                self.ITerm = -WINDUP_GUARD
             elif (self.ITerm > WINDUP_GUARD):
                 self.ITerm = WINDUP_GUARD
 
             if delta_time > 0:
-                DTerm = delta_error / delta_time
+                DTerm = self.Kd * delta_error / delta_time
             else:
                 DTerm = 0.0
 
@@ -48,7 +49,9 @@ class PID():
             self.last_time = self.current_time
             self.last_error = error
 
-            self.output = int(PTerm + (self.Ki * self.ITerm) + (self.Kd * DTerm))
+            self.output = int(PTerm + self.ITerm + DTerm)
+            if self.debug:
+                print('PID values:', error, PTerm, self.ITerm, (self.Kd * DTerm), self.output)
         return self.output
 
     def setkp(self, n):

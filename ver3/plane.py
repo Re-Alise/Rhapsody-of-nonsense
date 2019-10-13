@@ -61,9 +61,9 @@ class Plane():
             print('Error: Sonar is not working')
             raise IOError
         # -------------------------
-        self.yaw_pid = PID(kp=0.7)
-        self.pitch_pid = PID(kp=0.35, ki=0.3, kd=0.35)
-        self.roll_pid = PID(kp=0.55, ki=0.3, kd=0.25)
+        self.yaw_pid = PID(kp=1.2)
+        self.pitch_pid = PID(kp=1)
+        self.roll_pid = PID(kp=0, ki=0.45, kd=0, debug=True)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose

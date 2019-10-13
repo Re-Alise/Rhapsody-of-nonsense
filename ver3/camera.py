@@ -58,6 +58,7 @@ class Record(Thread):
             # time_str = '/home/pi/Desktop/Rhapsody-of-nonsense/records/' + str(int(time()))
             time_str = str(int(time()))
             # os.mkdir()
+            # print(self.save_path + time_str + '.avi')
             print(2)
             self.out = cv2.VideoWriter(self.save_path + time_str + '.avi', fourcc,
                             30, (IMAGE_SIZE[1]*2, IMAGE_SIZE[0]))
