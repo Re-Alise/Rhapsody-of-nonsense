@@ -283,6 +283,17 @@ class Controller():
                 return 'X'
         return ans
 
+    def stable_rad(self):
+        frame = self.frame_new
+        r = frame[:,:,2]
+        g = frame[:,:,1]
+        a = r-g+220
+        _, a = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)
+        pitch = self._find_center(frame=a, mask=MASK_ALL, data='y')
+        roll = self._find_center(frame=a, mask=MASK_ALL, data='x')
+        self.plane.update(1, pitch, roll, 0)
+
+
     def condition_has_light(self):
         """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。"""
         frame = self.frame_new
@@ -389,9 +400,11 @@ class Controller():
         self.feedback_queue.put(thr)
         return thr
 
-    def _mask(self, mask=(None, None, 0, 0), img_size=IMAGE_SIZE):
+    def _mask(self, frame=None, mask=(None, None, 0, 0), img_size=IMAGE_SIZE):
         """mask -> (width, hight, offset_x, offset_y),width and hight are half value
         """
+        if not frame:
+            frame = self.binarized_frame
         width, hight, offset_x, offset_y = mask
         mask = np.zeros(img_size,dtype=np.uint8)
         center_point_x = img_size[1]//2 + offset_x
@@ -413,12 +426,12 @@ class Controller():
         
         mask[y1:y2,x1:x2] = 255
         self.feedback_queue.put((1, (x1, y1), (x2, y2)))
-        masked = np.bitwise_and(self.binarized_frame, mask)
+        masked = np.bitwise_and(frame, mask)
         return masked
 
-    def _find_center(self, mask, data, error_num=10):
+    def _find_center(self, mask, data, frame=None, error_num=10):
         "mask: (width, hight, offset_x, offset_y),\ndata: 'x', 'y', 'w'"
-        thr =self._mask(mask=mask)
+        thr =self._mask(frame=frame, mask=mask)
 
         center_point_x = IMAGE_SIZE[1]//2 + mask[2]
         center_point_y = IMAGE_SIZE[0]//2 - mask[3]
