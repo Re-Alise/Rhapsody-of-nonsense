@@ -42,6 +42,7 @@ class Controller():
         self.c = C_START
         self._stop = 0
         self.box = Box()
+        self.light_color = 0
         if not debug:
             try:
                 self.plane = Plane()
@@ -59,21 +60,10 @@ class Controller():
         # self.forward_backup(100, 20)
         self.plane.update(1, 90, 0, 0)
         self.loop(self.pause, sec=1)
-        self.loop(self.forward, self.forward_condition, sec=30)
-        self.plane.update(1, -20, 0, 0)
-        self.loop(self.pause, sec=3)
-        self.loop(self.forward, self.forward_condition, sec=30)
-        self.plane.update(1, -20, 0, 0)
-        self.loop(self.pause, sec=3)
-        self.loop(self.forward, self.forward_condition, sec=30)
-        self.plane.update(1, -20, 0, 0)
-        self.loop(self.pause, sec=3)
-        self.loop(self.forward, self.forward_condition, sec=30)
-        self.plane.update(1, -20, 0, 0)
-        self.loop(self.pause, sec=3)
-        self.loop(self.forward, self.forward_condition, sec=30)
-        self.plane.update(1, -20, 0, 0)
-        self.loop(self.pause, sec=3)
+        # self.loop(self.forward, self.forward_condition, sec=30)
+        # self.plane.update(1, -20, 0, 0)
+        # self.loop(self.pause, sec=3)
+        self.following()
         # sleep(3)
         # if self.debug:
         #     self.forward(30, 20)
@@ -89,7 +79,7 @@ class Controller():
     def following(self):
         while True:
             self.loop(self.forward, self.forward_condition, sec=30)
-            if False:
+            if self.light_color:
                 break
             self.plane.update(1, -20, 0, 0)
             self.loop(self.pause, sec=3)
@@ -113,8 +103,8 @@ class Controller():
             func_loop()
             self.frame_finish()
     
-    def pause(self):
-        self.feedback_queue.put('1PAUSE')
+    # def pause(self):
+    #     self.feedback_queue.put('1PAUSE')
 
     def pause(self):
         self.feedback_queue.put('1===PAUSE===')
@@ -155,6 +145,10 @@ class Controller():
             self.frame_finish()
 
     def forward_condition(self):
+        self.light_color = self.condition_has_light()
+        if self.light_color:
+            return True
+
         yaw_weight = self._find_center(mask=MASK_FORWARD, data='w')
         print('yaw weight', yaw_weight)
         if yaw_weight < 10:
@@ -290,8 +284,7 @@ class Controller():
         return ans
 
     def condition_has_light(self):
-    """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
-    """
+        """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。"""
         frame = self.frame_new
         r = frame[:,:,2]
         g = frame[:,:,1]
