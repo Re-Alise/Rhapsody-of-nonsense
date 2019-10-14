@@ -60,39 +60,34 @@ class Controller():
         # self.following_loiter(light_only=True)
         #owowow
 
-        self.plane.update(1, 0, 0, 0)
-        # self.loop(self.pause, sec=2)
-        # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=5)
-        self.loop(self.forward_experimental, sec=90)
-
-        #owoowow
         # self.plane.update(1, 0, 0, 0)
         # # self.loop(self.pause, sec=2)
-        # # self.loop(self.forward_experimental, self.condition_light, sec=30)
+        # # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=5)
+        # self.loop(self.forward_experimental, sec=90)
+
+        #owoowow
+        self.plane.update(1, 0, 0, 0)
+        self.loop(self.forward_experimental, self.condition_light, sec=30)
         # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=30)
-        # # self.loop(self.forward_no_yaw, self.condition_forward, sec=2)
-        # # self.plane.update(1, 0, 0, 0)
-        # # self.loop(self.pause, sec=3)
-        # self.plane.update(1, 0, 0, 0)
-        # # self.loop(self.pause, sec=3)
-        # self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
-        # self.plane.roll_pid.set_windup_guard(40)
-        # self.loop(self.stable_rad, self.condition_not_red, sec=30)
-        # # self.loop(self.pause, self.condition_not_red, sec=10)
-        # if self.light_color == 2:
-        #     self.color = 'g'
-        # elif self.light_color == 3:
-        #     self.color = 'b'
-        # else:
-        #     self.color = 'r'
-        # print('Color:', self.color)
-        # self.plane.pitch_pid.reset()
-        # self.plane.roll_pid.reset()
-        # self.plane.update(1, 90, 0, 0)
-        # self.loop(self.pause_color, self.condition_no_light, sec=10)
-        # self.loop(self.pause_color, sec=1.5)
-        # self.following(ignore_light=True, drop=True)
-        # self.following(ignore_light=True)
+        self.plane.update(1, 0, 0, 0)
+        self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
+        self.plane.roll_pid.set_windup_guard(40)
+        self.loop(self.stable_rad, self.condition_not_red, sec=30)
+        # self.loop(self.pause, self.condition_not_red, sec=10)
+        if self.light_color == 2:
+            self.color = 'g'
+        elif self.light_color == 3:
+            self.color = 'b'
+        else:
+            self.color = 'r'
+        print('Color:', self.color)
+        self.plane.pitch_pid.reset()
+        self.plane.roll_pid.reset()
+        self.plane.update(1, 90, 0, 0)
+        self.loop(self.pause_color, self.condition_no_light, sec=10)
+        self.loop(self.pause_color, sec=1.5)
+        self.following(ignore_light=True, drop=True)
+        self.following(ignore_light=True)
 
     # def const(self)
 
