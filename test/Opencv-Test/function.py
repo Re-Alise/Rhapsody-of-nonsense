@@ -5,7 +5,7 @@ from time import sleep
 
 # IMAGE_SIZE = (240, 320)# 高寬
 IMAGE_SIZE = (320, 240)
-path = "1570952437/"
+path = "1570974618/"
 # path = "./../video/"
 fileName = "original.avi"
 # fileName = "test8.avi"
@@ -36,6 +36,7 @@ def detect_light(sframe):
     c = b-r+220
     ans = cv2.hconcat([a, c])
     ans = cv2.cvtColor(ans, cv2.COLOR_GRAY2BGR)
+    ans = cv2.hconcat([frame, ans])
     _, a = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)
     _, c = cv2.threshold(c, 100, 255, cv2.THRESH_BINARY_INV)
     na = cv2.countNonZero(a)
@@ -74,21 +75,53 @@ def detect(sframe):
     _, c = cv2.threshold(c, 100, 255, cv2.THRESH_BINARY_INV)
     na = cv2.countNonZero(a)
     nb = cv2.countNonZero(c)
-    if na>10000:
-        if nb>5000:
-            print("G", na, nb)
-            return ans
+
+    if na > 5000:
+        if na>nb:
+            # r
+            print('R', na, nb)
         else:
-            print("R", na, nb)
-            return ans
+            # g
+            print('G', na, nb)
+        return 1
     else:
-        if nb>5000:
-            print("B", na, nb)
-            return ans
+        if nb > 5000:
+            # 
+            print('B', na, nb)
         else:
-            print("XX", na, nb)
-            return ans
+            # xx
+
+            print('X', na, nb)
     return ans
+
+
+    # ....
+    # if nb>2000:
+    #     if na>1800:
+    #         # print("G", na, nb)
+    #         return 2
+    #     else:
+    #         # print("B", na, nb)
+    #         return 3
+    # else:
+    #     # print("XX", na, nb)
+    #     return 0
+
+    # if na>5000:
+    #     if nb>5000:
+    #         print("G", na, nb)
+    #         return ans
+    #     else:
+    #         print("R", na, nb)
+    #         return ans
+    # else:
+    #     if nb>5000:
+    #         print("B", na, nb)
+    #         return ans
+    #     else:
+    #         print("XX", na, nb)
+    #         return ans
+    # return ans
 
 def black(frame):
     frame = cv2.GaussianBlur(frame, gaussian, 0)
