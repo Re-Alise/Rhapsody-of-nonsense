@@ -58,7 +58,7 @@ class Plane():
         sleep(0.1)
         print('Sanity check -- Sonar value:', self.sonic.value)
         if self.sonic.value == 0:
-            print('Error: Sonar is not working')
+            print('Error: Sonar (Ultrasonic sensor) is not working')
             raise IOError
         # -------------------------
         self.yaw_pid = PID(kp=1.2)

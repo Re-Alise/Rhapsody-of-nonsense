@@ -96,7 +96,7 @@ class TFMiniLidar(Thread):
             test = measure(self.s)
             print('Sanity check -- LiDAR value:', test)
         except SerialException:
-            print('Serial connection is broken')
+            print('LiDAR (UART connection) is broken')
             raise IOError
 
         self.debug = debug

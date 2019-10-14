@@ -57,44 +57,28 @@ class Controller():
 
     def mission_start(self):
         # all mission fun return "ret, pitch, roll, yaw"
-        # self.following_loiter(light_only=True)
-        #owowow
-
         self.plane.update(1, 0, 0, 0)
-        # self.loop(self.pause, sec=2)
-        # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=5)
-        self.loop(self.forward_experimental, sec=90)
-
-        #owoowow
-        # self.plane.update(1, 0, 0, 0)
-        # # self.loop(self.pause, sec=2)
-        # # self.loop(self.forward_experimental, self.condition_light, sec=30)
+        self.loop(self.forward_experimental, self.condition_light, sec=30)
         # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=30)
-        # # self.loop(self.forward_no_yaw, self.condition_forward, sec=2)
-        # # self.plane.update(1, 0, 0, 0)
-        # # self.loop(self.pause, sec=3)
-        # self.plane.update(1, 0, 0, 0)
-        # # self.loop(self.pause, sec=3)
-        # self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
-        # self.plane.roll_pid.set_windup_guard(40)
-        # self.loop(self.stable_rad, self.condition_not_red, sec=30)
-        # # self.loop(self.pause, self.condition_not_red, sec=10)
-        # if self.light_color == 2:
-        #     self.color = 'g'
-        # elif self.light_color == 3:
-        #     self.color = 'b'
-        # else:
-        #     self.color = 'r'
-        # print('Color:', self.color)
-        # self.plane.pitch_pid.reset()
-        # self.plane.roll_pid.reset()
-        # self.plane.update(1, 90, 0, 0)
-        # self.loop(self.pause_color, self.condition_no_light, sec=10)
-        # self.loop(self.pause_color, sec=1.5)
-        # self.following(ignore_light=True, drop=True)
-        # self.following(ignore_light=True)
-
-    # def const(self)
+        self.plane.update(1, 0, 0, 0)
+        self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
+        self.plane.roll_pid.set_windup_guard(40)
+        self.loop(self.stable_rad, self.condition_not_red, sec=30)
+        # self.loop(self.pause, self.condition_not_red, sec=10)
+        if self.light_color == 2:
+            self.color = 'g'
+        elif self.light_color == 3:
+            self.color = 'b'
+        else:
+            self.color = 'r'
+        print('Color:', self.color)
+        self.plane.pitch_pid.reset()
+        self.plane.roll_pid.reset()
+        self.plane.update(1, 90, 0, 0)
+        self.loop(self.pause_color, self.condition_no_light, sec=10)
+        self.loop(self.pause_color, sec=1.5)
+        self.following(ignore_light=True, drop=True)
+        self.following(ignore_light=True)
 
     def conditoin_drop(self):
         return self.condition_has_color()
@@ -190,38 +174,10 @@ class Controller():
     def pause_color(self):
         self.feedback_queue.put('1===PAUSE, Color: {}==='.format(self.color))
 
-    # def turn_condition(self):
-    #     front_x = self._find_center(mask=MASK_FORWARD, data='x')
-    #     print('front x', front_x)
-    #     if front_x > 15:
-    #         return True
-
-    #     return False
-
-    # def turn(self):
-    #     pitch = 0
-    #     # check break condition
-    #     # ret, _, roll, yaw = self._stabilize()
-    #     ret, pitch_fector, roll, yaw = self._along()
-    #     # if self.debug:
-    #     # print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch_overrided, pitch_fector, roll, yaw))
-    #         # print(ret, pitch, roll, yaw, sep='\t')
-    #     # Testing
-    #     # self.plane.update(ret, pitch_overrided, roll, yaw)
-    #     self.plane.update(ret, pitch, 0, yaw)
-
     def pitch_test(self, pitch, sec=10):
         now = time()
         while time()-now<sec:
             self._get_frame()
-            # check break condition
-            # ret, _, roll, yaw = self._stabilize()
-            # ret, pitch_fector, roll, yaw = self._along()
-            # _, yy, _, thr = self._find_center(self.frame_new, MASK_BREAK)
-            # self.feedback_queue.put(1, 160, yy)
-
-            # # pitch_overrided = int(pitch * pitch_fector)
-            # pitch_overrided = pitch + int((yy - 120) * -1.0)
             self.plane.update(1, pitch, 0, 0)
             self.frame_finish()
 
@@ -282,18 +238,6 @@ class Controller():
         pitch_ = self._find_center(mask=MASK_OWO, data='y')
 
         pitch_overrided = int(pitch * pitch_fector)
-        # if yy > 150:
-        #     pitch_overrided += int(pitch_ * -1.0)
-        # else:
-        #     pitch_overrided = int(pitch * pitch_fector)
-
-        # if self.detect(self.frame_new) == 'R':
-        #     self.box.drop()
-        #     # pitch_overrided = 0
-        # else:
-        #     self.box.close()
-        
-        # if self.debug:
         print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch_overrided, pitch_fector, roll, yaw))
             # print(ret, pitch, roll, yaw, sep='\t')
         # Testing
@@ -305,12 +249,6 @@ class Controller():
         pitch = 70
         # check break condition
         ret, pitch_fector, roll, yaw = self._along_experimental()
-
-        # front_weight = self._find_center(mask=MASK_FORWARD, data='w')
-        # if front_weight < 10:
-        #     # use global center instead
-        #     yaw = self._find_center(mask=MASK_ALL, data='x')
-        # pitch_ = self._find_center(mask=MASK_OWO, data='y')
 
         pitch_overrided = int(pitch * pitch_fector)
         
@@ -390,21 +328,6 @@ class Controller():
             self.plane.update(ret, pitch_overrided, roll, yaw)
             self.frame_finish()
 
-
-    def stable(self, sec=10):
-        now = time()
-        while time()-now<sec:
-            if self._stop:
-                break
-            self._get_frame()
-            # check break condition
-            ret, pitch, roll, yaw = self._stabilize()
-            if self.debug:
-                print('ret: {}\t pitch: {}\t roll: {}\t yaw: {}'.format(ret, pitch, roll, yaw))
-                # print(ret, pitch, roll, yaw, sep='\t')
-            self.plane.update(ret, pitch, roll, yaw)
-            self.frame_finish()
-
     def _stabilize(self, color='k'):
         pitch = self._find_center(mask=MASK_OWO, data='y')
         roll = self._find_center(mask=MASK_LINE_MIDDLE, data='x')
@@ -473,37 +396,6 @@ class Controller():
             pitch_fector = 0.3
             # yaw_overrided = -90
         return 1, pitch_fector, roll, yaw_overrided
-
-    def detect(self, frame):
-        """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
-        """
-        frame = cv2.GaussianBlur(frame, (13, 13), 0)
-        r = frame[:,:,2]
-        g = frame[:,:,1]
-        b = frame[:, :, 0]
-        a = r-g+220
-        c = b-r+220
-        ans = cv2.hconcat([a, c])
-        ans = cv2.cvtColor(ans, cv2.COLOR_GRAY2BGR)
-        _, a = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)
-        _, c = cv2.threshold(c, 100, 255, cv2.THRESH_BINARY_INV)
-        na = cv2.countNonZero(a)
-        nb = cv2.countNonZero(c)
-        if na>5000:
-            if nb>2500:
-                print("G", na, nb)
-                return 'G'
-            else:
-                print("R", na, nb)
-                return 'R'
-        else:
-            if nb>2500:
-                print("B", na, nb)
-                return 'B'
-            else:
-                print("XX", na, nb)
-                return 'X'
-        return ans
 
     def stable_rad(self):
         self.feedback_queue.put('1===Stable Red===')
@@ -598,32 +490,6 @@ class Controller():
         binarized_frame = np.bitwise_and(c_, gray_)
         self.feedback_queue.put(binarized_frame)
         return binarized_frame
-
-    def _binarization_low_light(self, frame):
-        frame = cv2.GaussianBlur(frame, (25, 25), 0)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        thr = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, self.c)
-        thr = cv2.morphologyEx(thr, cv2.MORPH_OPEN, kernel)
-        thr = cv2.morphologyEx(thr, cv2.MORPH_CLOSE, kernel2)
-        try:
-            thr = cv2.bitwise_and(thr, thr)
-        except:
-            p(self.debug, 'Something went wrong when do bitwise operation')
-            p(self.debug, 'Image shape: {}'.format(thr.shape))
-        
-        contours, _ = cv2.findContours(thr,1,2)
-        sumX=0
-        sumY=0
-        sumW=0
-        if len(contours) < 10:
-            self.c -= delta_c
-            if self.c < 0:
-                self.c = 0
-        else:
-            self.c += delta_c
-
-        self.feedback_queue.put(thr)
-        return thr
 
     def _mask(self, frame=None, mask=(None, None, 0, 0), img_size=IMAGE_SIZE):
         """mask -> (width, hight, offset_x, offset_y),width and hight are half value

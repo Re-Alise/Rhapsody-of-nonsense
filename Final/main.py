@@ -55,7 +55,7 @@ if __name__ == '__main__':
         gpio.set_mode(PIN.BUZZER, pigpio.OUTPUT)
         plane = Plane()
         controller = Controller(debug=False, save=save)
-        mode_auto = gpio.read(PIN.STATE)      
+        mode_auto = gpio.read(PIN.STATE)
     except:
         print('!!!init fail')      
         exit()                       
