@@ -3,6 +3,8 @@ import os
 import numpy as np
 from time import sleep
 
+# from menu import MENU
+
 IMAGE_SIZE = (320, 240)
 path = ""
 path = "./../video/"
@@ -32,8 +34,8 @@ saturation_threshold = 145
 hue_range = 20
 hue_threshold = 2*hue_range
 hue_red = 180 # use overfloat value don't use value like 1, 0, 5 etc..
-hue_green = 54
-hue_blue = 100
+hue_green = 90
+hue_blue = 120
 
 default_drop_color = 3
 default_land_color = 2
@@ -94,6 +96,14 @@ names = [
     'hue_red',
     'hue_green',
     'hue_blue',
+]
+modes = [
+    'normal, c, gray',
+    'light, a, b, a_',
+    'color, s',
+    'red, r, s, h',
+    'green, g, s, h',
+    'blue, b, s, h'
 ]
 
 # def select_pics()
@@ -166,7 +176,7 @@ def normal_map(frame):
     r = frame[:,:,2]
     b = frame[:, :, 0]
     c = b-r+ normal_offset
-    _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     # c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
@@ -181,10 +191,13 @@ def light_map(frame):
     frame = cv2.GaussianBlur(frame, gaussian, 0)
     r = frame[:,:,2]
     g = frame[:,:,1]
+    b = frame[:, :, 0]
     a = r-g+ na_offset
+    c = b-r+ nb_offset
     _, a_ = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-    a_ = cv2.cvtColor(a_, cv2.COLOR_GRAY2BGR)
-    a_ = cv2.hconcat([frame, a_])
+    tmp = cv2.hconcat([a, c, a_])
+    tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
+    a_ = cv2.hconcat([frame, tmp])
     return a_
 
 def color_map(frame):
@@ -204,8 +217,39 @@ def red_map(frame):
     h = hsv[:, :, 0]/180*255-int((hue_red-hue_range)/180*255)
     h = np.asarray(h, np.uint8)
     _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-    red = np.bitwise_or(s_, h_)
-    return red
+    red = np.bitwise_and(s_, h_)
+    tmp = cv2.hconcat([red, s_, h_])
+    tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
+    tmp = cv2.hconcat([frame, tmp])
+    return tmp
+
+def green_map(frame):
+    frame = cv2.GaussianBlur(frame, (13, 13), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    s = hsv[:, :, 1]
+    _, s_ = cv2.threshold(s, saturation_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    h = hsv[:, :, 0]/180*255-int((hue_green-hue_range)/180*255)
+    h = np.asarray(h, np.uint8)
+    _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+    green = np.bitwise_and(s_, h_)
+    tmp = cv2.hconcat([green, s_, h_])
+    tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
+    tmp = cv2.hconcat([frame, tmp])
+    return tmp
+
+def blue_map(frame):
+    frame = cv2.GaussianBlur(frame, (13, 13), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    s = hsv[:, :, 1]
+    _, s_ = cv2.threshold(s, saturation_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    h = hsv[:, :, 0]/180*255-int((hue_blue-hue_range)/180*255)
+    h = np.asarray(h, np.uint8)
+    _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+    blue = np.bitwise_and(s_, h_)
+    tmp = cv2.hconcat([blue, s_, h_])
+    tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
+    tmp = cv2.hconcat([frame, tmp])
+    return tmp
 
 def finish_color_map(frame):
     if color == 2:
@@ -443,77 +487,237 @@ def bin_and(frame1, frame2):
 def bin_or(frame1, frame2):
     return np.bitwise_or(frame1, frame2)
 
+
+class MENU():
+    def __init__(self, ):
+        self.display = 0
+        self.select = 0
+        self.show_num = 6
+        self.mode = 0
+    
+    def creat_list(self, ):
+        global normal_offset
+        global normal_threshold
+        global gray_threshold
+        global na_offset
+        global nb_offset
+        global light_threshold
+        global saturation_threshold
+        global hue_range
+        global hue_threshold
+        global hue_red
+        global hue_green
+        global hue_blue
+        dd = {
+            0: ('normal_offset', normal_offset,''),
+            1: ('normal_threshold', normal_threshold,''),
+            2: ('gray_threshold', gray_threshold,''),
+            3: ('na_offset', na_offset,''),
+            4: ('nb_offset', nb_offset,''),
+            5: ('light_threshold', light_threshold,''),
+            6: ('saturation_threshold', saturation_threshold,''),
+            7: ('hue_range', hue_range,''),
+            8: ('hue_threshold', hue_threshold,''),
+            9: ('hue_red', hue_red,''),
+            10: ('hue_green', hue_green,''),
+            11: ('hue_blue', hue_blue,''),
+            12: ('----end----', '', '')
+            # '----end----': 
+        }
+        return dd
+
+    def show_menu(self, ):
+        img = np.zeros(IMAGE_SIZE,dtype=np.uint8)
+        color_select_background = 230
+        color_select_word = 0
+        color_word = 180
+        text_size = 0.5
+        ss = self.creat_list()
+        for i in range(6):
+            # ss[i][0], ss[i][1]
+        # for i, s in enumerate(ss):
+            if i == select:
+                cv2.rectangle(img, (0, 10+i*20), (IMAGE_SIZE[0], 10+i*20+20), (color_select_background, color_select_background, color_select_background), -1)
+                cv2.putText(img, ss[i+display][0], (10, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_select_word, color_select_word, color_select_word), 1)
+                cv2.putText(img, str(ss[i+display][1]), (180, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_select_word, color_select_word, color_select_word), 1)
+            else:
+                cv2.putText(img, ss[i+display][0], (10, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_word, color_word, color_word), 1)
+                cv2.putText(img, str(ss[i+display][1]), (180, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_word, color_word, color_word), 1)
+        cv2.putText(img, modes[self.mode], (10, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (color_word, color_word, color_word), 1)
+        return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+    def up(self, ):
+        global select, display
+        if select == 0:
+            if not display == 0:
+                display -= 1
+        else:
+            select -= 1
+
+    def down(self, ):
+        global select, display
+        if select == self.show_num-1:
+            if not display == 13-self.show_num:
+                display += 1
+        else:
+            select += 1
+
+    def left(self, offect_num):
+        global names
+        global normal_offset
+        global normal_threshold
+        global gray_threshold
+        global na_offset
+        global nb_offset
+        global light_threshold
+        global saturation_threshold
+        global hue_range
+        global hue_threshold
+        global hue_red
+        global hue_green
+        global hue_blue
+        now_select = names[display+select]
+        if now_select == 'normal_offset':
+            normal_offset = normal_offset - offect_num
+        if now_select == 'normal_threshold':
+            normal_threshold = normal_threshold - offect_num
+        if now_select == 'gray_threshold':
+            gray_threshold = gray_threshold - offect_num
+        if now_select == 'na_offset':
+            na_offset = na_offset - offect_num
+        if now_select == 'nb_offset':
+            nb_offset = nb_offset - offect_num
+        if now_select == 'light_threshold':
+            light_threshold = light_threshold - offect_num
+        if now_select == 'saturation_threshold':
+            saturation_threshold = saturation_threshold - offect_num
+        if now_select == 'hue_range':
+            hue_range = hue_range - offect_num
+        if now_select == 'hue_threshold':
+            hue_threshold = hue_threshold - offect_num
+        if now_select == 'hue_red':
+            hue_red = hue_red - offect_num
+        if now_select == 'hue_green':
+            hue_green = hue_green - offect_num
+        if now_select == 'hue_blue':
+            hue_blue = hue_blue - offect_num
+
+    def right(self, offect_num):
+        global names
+        global normal_offset
+        global normal_threshold
+        global gray_threshold
+        global na_offset
+        global nb_offset
+        global light_threshold
+        global saturation_threshold
+        global hue_range
+        global hue_threshold
+        global hue_red
+        global hue_green
+        global hue_blue
+        now_select = names[display+select]
+        if now_select == 'normal_offset':
+            normal_offset = normal_offset + offect_num
+        if now_select == 'normal_threshold':
+            normal_threshold = normal_threshold + offect_num
+        if now_select == 'gray_threshold':
+            gray_threshold = gray_threshold + offect_num
+        if now_select == 'na_offset':
+            na_offset = na_offset + offect_num
+        if now_select == 'nb_offset':
+            nb_offset = nb_offset + offect_num
+        if now_select == 'light_threshold':
+            light_threshold = light_threshold + offect_num
+        if now_select == 'saturation_threshold':
+            saturation_threshold = saturation_threshold + offect_num
+        if now_select == 'hue_range':
+            hue_range = hue_range + offect_num
+        if now_select == 'hue_threshold':
+            hue_threshold = hue_threshold + offect_num
+        if now_select == 'hue_red':
+            hue_red = hue_red + offect_num
+        if now_select == 'hue_green':
+            hue_green = hue_green + offect_num
+        if now_select == 'hue_blue':
+            hue_blue = hue_blue + offect_num
+
+    def show(self):
+        if self.mode == 0:
+            return normal_map(frame)
+        elif self.mode == 1:
+            return light_map(frame)
+        elif self.mode == 2:
+            return color_map(frame)
+        elif self.mode == 3:
+            return red_map(frame)
+        elif self.mode == 4:
+            return green_map(frame)
+        elif self.mode == 5:
+            return blue_map(frame)
+
+    def chmod(self, mode):
+        self.mode = mode
+
+    def nextmode(self):
+        self.mode += 1
+        self.mode %= 6
+
 if __name__ == "__main__":
-    if not adjust:
-        try:
-            cap = cv2.VideoCapture(path+fileName) 
-            stop = 0
-            pause = 0
-            pause_ = 1
-            while cap.isOpened():
-                if stop:
-                    break
-                if not pause:
-                    ret, frame = cap.read()
-                if ret:
-                    cv2.imshow('Replay', cv2.hconcat([show_menu(),mission(frame)]))
-                    # cv2.imshow('Replay', show_menu())
-                    # while 1: 
-                    inn = cv2.waitKey(1)
-                    # if inn & 0xFF == ord(' '):
-                        # break
-                    switch = {
-                        'k': lambda : down(),
-                        'i': lambda : up(),
-                        'j': lambda : left(1),
-                        'l': lambda : right(1),
-                        'h': lambda : left(10),
-                        ';': lambda : right(10),
-                        'u': lambda : left(1000),
-                        "o": lambda : right(1000),
-                    }
-                    for key in switch:
-                        if inn & 0xFF == ord(key):
-                            switch[key]()
-                    if inn & 0xFF == ord('x'):
-                        stop = 1
-                        # break
-                    if inn & 0xFF == ord('s'):
-                        step = 0
-                    if inn & 0xFF == ord('p'):
-                        if pause_:
-                            pause = not pause
-                            pause_ = 0
-                    else:
-                        pause_ = 1
-                        # sleep(0.1)
-                else:
-                    break
-        finally:
-            cap.release()
-            cv2.destroyAllWindows()
-    else:
-        try:
-            cap = cv2.VideoCapture(path+fileName) 
-            stop = 0
-            while cap.isOpened():
-                if stop:
-                    break
+    try:
+        cap = cv2.VideoCapture(path+fileName) 
+        stop = 0
+        pause = 0
+        pause_ = 1
+        menu = MENU()
+        while cap.isOpened():
+            if stop:
+                break
+            if not pause:
                 ret, frame = cap.read()
-                if ret:
-                    cv2.imshow('Replay', mission(frame))
-                    while 1: 
-                        inn = cv2.waitKey(0)
-                        if inn & 0xFF == ord(' '):
-                            break
-                        if inn & 0xFF == ord('x'):
-                            stop = 1
-                            break
-                        if inn & 0xFF == ord('s'):
-                            step = 0
+            if ret:
+                cv2.imshow('Replay', cv2.hconcat([menu.show_menu(),menu.show()]))
+                # cv2.imshow('Replay', show_menu())
+                # while 1: 
+                inn = cv2.waitKey(1)
+                # if inn & 0xFF == ord(' '):
+                    # break
+                # Upkey : 2490368
+                # DownKey : 2621440
+                # LeftKey : 2424832
+                # RightKey: 2555904
+                # Space : 32
+                # Delete : 3014656
+                switch = {
+                    84: lambda : menu.down(),
+                    82: lambda : menu.up(),
+                    81: lambda : menu.left(1),
+                    83: lambda : menu.right(1),
+                    87: lambda : menu.nextmode(),
+                    32: lambda : menu.nextmode(),
+                    # 'h': lambda : menu.left(10),
+                    # ';': lambda : menu.right(10),
+                    # 'u': lambda : menu.left(1000),
+                    # "o": lambda : menu.right(1000),
+                }
+                print(inn)
+                for key in switch:
+                    if inn == key:
+                        switch[key]()
+                if inn & 0xFF == ord('x'):
+                    stop = 1
+                    # break
+                if inn & 0xFF == ord('s'):
+                    step = 0
+                if inn & 0xFF == ord('p'):
+                    if pause_:
+                        pause = not pause
+                        pause_ = 0
                 else:
-                    break
-        finally:
-            cap.release()
-            cv2.destroyAllWindows()
-    # adjust mode
+                    pause_ = 1
+                    # sleep(0.1)
+            else:
+                break
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
