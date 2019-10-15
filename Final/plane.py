@@ -63,7 +63,7 @@ class Plane():
         # -------------------------
         self.yaw_pid = PID(kp=1.2)
         self.pitch_pid = PID(kp=1, windup_guard=50)
-        self.roll_pid = PID(kp=0, ki=0.40, kd=0, debug=True)
+        self.roll_pid = PID(kp=0, ki=0.40, kd=0)
         # self.capture = cv2.VideoCapture(2)
 
     @verbose
