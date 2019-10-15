@@ -49,17 +49,17 @@ class Plane():
                 self._pi.wave_tx_stop()
                 self.sonic = Sonic()
                 self.lidar = TFMiniLidar(TF_PORT, debug=0)
+                self.hight = 130
+                PPM(self.output_queue, 13)
+
+                # sanity check
+                sleep(0.1)
+                print('Sanity check -- Sonar value:', self.sonic.value)
+                if self.sonic.value == 0:
+                    print('Error: Sonar (Ultrasonic sensor) is not working')
+                    raise IOError
             except:
                 raise IOError
-        self.hight = 130
-        PPM(self.output_queue, 13)
-
-        # sanity check
-        sleep(0.1)
-        print('Sanity check -- Sonar value:', self.sonic.value)
-        if self.sonic.value == 0:
-            print('Error: Sonar (Ultrasonic sensor) is not working')
-            raise IOError
         # -------------------------
         self.yaw_pid = PID(kp=1.2)
         self.pitch_pid = PID(kp=1, windup_guard=50)
