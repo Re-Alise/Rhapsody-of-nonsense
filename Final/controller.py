@@ -30,7 +30,7 @@ MASK_OWO = (40, None, 0, 0)
 MAX_MISSION_TIME = 200
 
 # ============= From funcs =================
-IMAGE_SIZE = (320, 240)
+# IMAGE_SIZE = (320, 240)
 path = ""
 path = "./../video/"
 # path = "C:\\Users\\YUMI.Lin\\Desktop\\video\\"
@@ -38,15 +38,15 @@ path = "./../video/"
 fileName = "test8.avi"
 gaussian = (13, 13)
 kernel = np.ones((3,3),np.uint8)
-adjust = 0
+# adjust = 0
 
-select = 0
-display = 0
-show_num = 6
+# select = 0
+# display = 0
+# show_num = 6
 
 
-target_color = 0
-step = -1
+# target_color = 0
+# step = -1
 
 # PARAMETER
 normal_offset = 180
@@ -107,6 +107,7 @@ class Controller():
         self.dropped = False
         self.global_time = 0
         self.binarization_state = 0
+        self.need_pause = False
 
         if not debug:
             try:
@@ -119,14 +120,17 @@ class Controller():
 
     def mission_start(self):
         try:
+            # normal:0, light:1, color:2
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
             # 起飛、機身已穩定五秒裝，重設各方向移動
+            self.binarization_state = 0
             self.plane.update(1, 0, 0, 0)
             # 往前盲走，直到看到紅綠燈
             self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, self.condition_light, sec=10)
             # 重設各方向移動，並設定紅綠燈用 PID 值
+            self.binarization_state = 1
             self.plane.update(1, 0, 0, 0)
             self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
             self.plane.roll_pid.set_windup_guard(40)
@@ -140,6 +144,7 @@ class Controller():
                 self.color = 3
             print('Color:', self.color)
             # 找到燈號，重設 PID 值
+            self.binarization_state = 0
             self.plane.pitch_pid.reset()
             self.plane.roll_pid.reset()
             self.plane.update(1, 90, 0, 0)
@@ -148,11 +153,14 @@ class Controller():
             self.loop(self.pause, sec=1.5)
             # # Work in Progress
             # 往前移動，直到看到大色塊（地毯）
-            self.loop(self.forward, self.condition_has_color, sec=30)
+            self.following(condition=self.condition_has_color)
+            # self.loop(self.forward, self.condition_has_color, sec=30)
             # 往前移動，看到對應顏色或找不到色塊，沙包就投下
+            self.binarization_state = 2
             self.following(drop=True, yaw=False)
             self.box.drop()
-            self.loop(self.forward), self.condition_all_floor, sec=30)
+            self.binarization_state = 0
+            self.loop(self.forward, self.condition_all_floor, sec=30)
 
             # self.following(ignore_light=True)
         except:
@@ -200,7 +208,10 @@ class Controller():
         floor_bin_forward = self._mask(floor_bin, MASK_FORWARD)
         if self.get_weight(floor_bin) < floor_forward_min:
             if self.get_weight(floor_bin_forward) < floor_min:
+                self.need_pause = True
                 return 1
+
+        self.need_pause = False
         return 0
 
     def condition_has_color(self):
@@ -249,6 +260,9 @@ class Controller():
                     self.box.drop()
                     self.dropped = True
                     break
+            
+            if self.need_pause == False:
+                break
 
             self.plane.update(1, -45, 0, 0)
             self.loop(self.pause, sec=3)
@@ -274,6 +288,7 @@ class Controller():
     def loop(self, func_loop, func_condition=None, sec=10):
         condition_count = 0
         now = time()
+        self.need_pause = False
         while time()-now < sec and self.global_time <= MAX_MISSION_TIME:
             if self.dropped == True:
                 self.feedback_queue.put('7===Dropped===')
@@ -368,10 +383,6 @@ class Controller():
             ret, pitch_overrided, pitch_fector, roll, yaw))
         self.plane.update(ret, pitch_overrided, roll, 0)
 
-    def _stabilize(self, color='k'):
-        pitch = self._find_center(mask=MASK_OWO, data='y')
-        roll = self._find_center(mask=MASK_LINE_MIDDLE, data='x')
-        return 1, pitch, roll, 0
 
     def _along_experimental(self, color='k'):
         front = self._find_center(mask=MASK_FORWARD, data='x')
@@ -456,15 +467,16 @@ class Controller():
     def _binarization_general(self, frame):
         frame = cv2.GaussianBlur(frame, (13, 13), 0)
         self.frame_new = frame
-        r = frame[:, :, 2]
-        b = frame[:, :, 0]
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        _, gray_ = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
-        c = b - r + 180
-        c = np.asarray(c, np.uint8)
-        _, c_ = cv2.threshold(c, 160, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        binarized_frame = np.bitwise_and(c_, gray_)
-        self.feedback_queue.put(binarized_frame)
+
+        if self.binarization_state == 0:
+            binarized_frame = self.normal_map(self.frame_new)
+        elif: self.binarization_state == 1:
+            binarized_frame = self.light_map(self.frame_new)
+        elif self.binarization_state == 2:
+            binarized_frame = self.color_map(self.frame_new)
+        else:
+            print('invalid binarization state')
+            binarized_frame = self.normal_map(self.frame_new)
         return binarized_frame
 
     def _mask(self, frame=None, mask=(None, None, 0, 0), img_size=IMAGE_SIZE):
@@ -560,6 +572,32 @@ class Controller():
             return center_point_y - cY
         if data == 'w':
             return sumW
+    
+    def normal_map(self, frame):
+        # frame = cv2.GaussianBlur(frame, gaussian, 0)
+        r = frame[:,:,2]
+        b = frame[:, :, 0]
+        c = b-r+ normal_offset
+        _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+        # c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
+        # binarized_frame = np.bitwise_and(c_, gray_)
+        binarized_frame = c_
+        return binarized_frame
+
+    def light_map(self, frame):
+        # frame = cv2.GaussianBlur(frame, gaussian, 0)
+        r = frame[:,:,2]
+        g = frame[:,:,1]
+        a = r-g+ na_offset
+        _, a_ = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+        return a_
+
+    def color_map(self, frame):
+        # frame = cv2.GaussianBlur(frame, gaussian, 0)
+        s_ = self.get_saturation_binarized()
+        return s_
 
     def get_hue_binarized(self, hue=180, invert=0):
         hsv = cv2.cvtColor(self.frame_new, cv2.COLOR_BGR2HSV)
