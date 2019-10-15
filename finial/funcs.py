@@ -52,6 +52,7 @@ floor_min = 100
 
 # MASK
 MASK_FORWARD = (None, 25, 0, 85)
+MASK_DROP = (None, 60, 0, 0)
 """
 parameters:
     normal_offset:      
@@ -263,25 +264,38 @@ def detect_light(frame):
     return ans
 
 def has_drop_color(frame):
-    if color == 3:
-        color_offset = hue_green
-    else: # 如果是藍色或是其他 通通 去藍色投擲(因為剛進去比較穩?)
-        color_offset = hue_blue
+    # if color == 3:
+    #     color_offset = hue_green
+    # else: # 如果是藍色或是其他 通通 去藍色投擲(因為剛進去比較穩?)
+    #     color_offset = hue_blue
         
-    frame = cv2.GaussianBlur(frame, (13, 13), 0)
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    s = hsv[:, :, 1]
-    _, s_ = cv2.threshold(s, saturation_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
-    h = hsv[:, :, 0]/180*255-int((color_offset-hue_range)/180*255)
-    h = np.asarray(h, np.uint8)
-    _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
-    color = np.bitwise_or(s_, h_)
-    color_mask = _mask(color, (None, 100, 0, 0))
-    nc = cv2.countNonZero(color_mask)
-    if nc > drop_min:
+    # frame = cv2.GaussianBlur(frame, (13, 13), 0)
+    # hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # s = hsv[:, :, 1]
+    # _, s_ = cv2.threshold(s, saturation_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    # h = hsv[:, :, 0]/180*255-int((color_offset-hue_range)/180*255)
+    # h = np.asarray(h, np.uint8)
+    # _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+    # color = np.bitwise_and(s_, h_)
+    # color_mask = _mask(color, (None, 100, 0, 0))
+    # nc = cv2.countNonZero(color_mask)
+    # if nc > drop_min:
+    #     return 1
+    # else:
+    #     return 0
+    saturation_binarized = get_saturation_binarized(frame)
+    saturation_binarized = _mask(saturation_binarized, MASK_DROP)
+    green_hue_binarized = get_hue_binarized(frame, hue_green)
+    green_binarized = bin_and(saturation_binarized, green_hue_binarized)
+    if get_weight(green_binarized) > drop_min:
         return 1
-    else:
-        return 0
+    if color == 3:
+        blue_hue_binarized = get_hue_binarized(frame, hue_blue)
+        blue_binarized = bin_and(saturation_binarized, blue_hue_binarized)
+        if get_weight(blue_binarized) > drop_min:
+            return 1
+    return 0
+
 
 def has_finish_color(frame):
     if color == 2:
@@ -407,9 +421,27 @@ def get_hue_binarized(frame, hue=180, invert=0):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     h = hsv[:, :, 0]/180*255-int((hue-hue_range)/180*255)
     h = np.asarray(h, np.uint8)
-    _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+    if invert:
+        _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    else:
+        _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
     return h_
 
+def get_saturation_binarized(frame):    
+    frame = cv2.GaussianBlur(frame, (13, 13), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    s = hsv[:, :, 1]
+    _, s_ = cv2.threshold(s, saturation_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    return s_
+
+def get_weight(bined):
+    return cv2.countNonZero(bined)
+
+def bin_and(frame1, frame2):
+    return np.bitwise_and(frame1, frame2)
+
+def bin_or(frame1, frame2):
+    return np.bitwise_or(frame1, frame2)
 
 if __name__ == "__main__":
     if not adjust:
