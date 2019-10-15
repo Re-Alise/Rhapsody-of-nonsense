@@ -46,8 +46,12 @@ drop_min = 20000
 has_color_min = 10000
 has_finishline_min = 1000
 big_red_min = drop_min
+big_color_min = 20000
+floor_forward_min = 10
+floor_min = 100
 
 # MASK
+MASK_FORWARD = (None, 25, 0, 85)
 """
 parameters:
     normal_offset:      
@@ -162,12 +166,15 @@ def normal_map(frame):
     b = frame[:, :, 0]
     c = b-r+ normal_offset
     _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
-    c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
-    c_ = cv2.hconcat([frame, c_])
-    # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV)# +cv2.THRESH_OTSU)
-    # binarized_frame = np.bitwise_or(c_, gray_)
-    return c_
+    # c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
+    # binarized_frame = np.bitwise_and(c_, gray_)
+    binarized_frame = c_
+    binarized_frame = cv2.cvtColor(binarized_frame, cv2.COLOR_GRAY2BGR)
+    gray_ = cv2.cvtColor(gray_, cv2.COLOR_GRAY2BGR)
+    binarized_frame = cv2.hconcat([frame, binarized_frame, gray_])
+    return binarized_frame
 
 def light_map(frame):
     frame = cv2.GaussianBlur(frame, gaussian, 0)
@@ -387,140 +394,21 @@ def _mask(frame, mask=(None, None, 0, 0), img_size=IMAGE_SIZE):
     masked = np.bitwise_and(frame, mask)
     return masked
 
-def creat_list():
-    dd = {
-        0: ('normal_offset', normal_offset,''),
-        1: ('normal_threshold', normal_threshold,''),
-        2: ('gray_threshold', gray_threshold,''),
-        3: ('na_offset', na_offset,''),
-        4: ('nb_offset', nb_offset,''),
-        5: ('light_threshold', light_threshold,''),
-        6: ('saturation_threshold', saturation_threshold,''),
-        7: ('hue_range', hue_range,''),
-        8: ('hue_threshold', hue_threshold,''),
-        9: ('hue_red', hue_red,''),
-        10: ('hue_green', hue_green,''),
-        11: ('hue_blue', hue_blue,''),
-        12: ('----end----', '', '')
-        # '----end----': 
-    }
-    return dd
+def condition_all_floor():
+    floor_bin = get_hue_binarized(hue_floor, invert=1)
+    floor_bin_forward = _mask(floor_bin, MASK_FORWARD)
+    if cv2.countNonZero(floor_bin) < floor_forward_min:
+        if cv2.countNonZero(floor_bin_forward) < floor_min:
+            return 1
+    return 0
 
-def show_menu():
-    img = np.zeros(IMAGE_SIZE,dtype=np.uint8)
-    hight = 20
-    color_select_background = 230
-    color_select_word = 0
-    color_word = 180
-    text_size = 0.5
-    ss = creat_list()
-    for i in range(6):
-        # ss[i][0], ss[i][1]
-    # for i, s in enumerate(ss):
-        if i == select:
-            cv2.rectangle(img, (0, 10+i*20), (IMAGE_SIZE[0], 10+i*20+20), (color_select_background, color_select_background, color_select_background), -1)
-            cv2.putText(img, ss[i+display][0], (10, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_select_word, color_select_word, color_select_word), 1)
-            cv2.putText(img, str(ss[i+display][1]), (180, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_select_word, color_select_word, color_select_word), 1)
-        else:
-            cv2.putText(img, ss[i+display][0], (10, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_word, color_word, color_word), 1)
-            cv2.putText(img, str(ss[i+display][1]), (180, 25+i * 20), cv2.FONT_HERSHEY_SIMPLEX, text_size, (color_word, color_word, color_word), 1)
-    return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-
-def up():
-    global select, display
-    if select == 0:
-        if not display == 0:
-            display -= 1
-    else:
-        select -= 1
-
-def down():
-    global select, display
-    if select == show_num-1:
-        if not display == 13-show_num:
-            display += 1
-    else:
-        select += 1
-
-def left(offect_num):
-    global names
-    global normal_offset
-    global normal_threshold
-    global gray_threshold
-    global na_offset
-    global nb_offset
-    global light_threshold
-    global saturation_threshold
-    global hue_range
-    global hue_threshold
-    global hue_red
-    global hue_green
-    global hue_blue
-    now_select = names[display+select]
-    if now_select == 'normal_offset':
-        normal_offset = normal_offset - offect_num
-    if now_select == 'normal_threshold':
-        normal_threshold = normal_threshold - offect_num
-    if now_select == 'gray_threshold':
-        gray_threshold = gray_threshold - offect_num
-    if now_select == 'na_offset':
-        na_offset = na_offset - offect_num
-    if now_select == 'nb_offset':
-        nb_offset = nb_offset - offect_num
-    if now_select == 'light_threshold':
-        light_threshold = light_threshold - offect_num
-    if now_select == 'saturation_threshold':
-        saturation_threshold = saturation_threshold - offect_num
-    if now_select == 'hue_range':
-        hue_range = hue_range - offect_num
-    if now_select == 'hue_threshold':
-        hue_threshold = hue_threshold - offect_num
-    if now_select == 'hue_red':
-        hue_red = hue_red - offect_num
-    if now_select == 'hue_green':
-        hue_green = hue_green - offect_num
-    if now_select == 'hue_blue':
-        hue_blue = hue_blue - offect_num
-
-def right(offect_num):
-    global names
-    global normal_offset
-    global normal_threshold
-    global gray_threshold
-    global na_offset
-    global nb_offset
-    global light_threshold
-    global saturation_threshold
-    global hue_range
-    global hue_threshold
-    global hue_red
-    global hue_green
-    global hue_blue
-    now_select = names[display+select]
-    if now_select == 'normal_offset':
-        normal_offset = normal_offset + offect_num
-    if now_select == 'normal_threshold':
-        normal_threshold = normal_threshold + offect_num
-    if now_select == 'gray_threshold':
-        gray_threshold = gray_threshold + offect_num
-    if now_select == 'na_offset':
-        na_offset = na_offset + offect_num
-    if now_select == 'nb_offset':
-        nb_offset = nb_offset + offect_num
-    if now_select == 'light_threshold':
-        light_threshold = light_threshold + offect_num
-    if now_select == 'saturation_threshold':
-        saturation_threshold = saturation_threshold + offect_num
-    if now_select == 'hue_range':
-        hue_range = hue_range + offect_num
-    if now_select == 'hue_threshold':
-        hue_threshold = hue_threshold + offect_num
-    if now_select == 'hue_red':
-        hue_red = hue_red + offect_num
-    if now_select == 'hue_green':
-        hue_green = hue_green + offect_num
-    if now_select == 'hue_blue':
-        hue_blue = hue_blue + offect_num
+def get_hue_binarized(frame, hue=180, invert=0):
+    frame = cv2.GaussianBlur(frame, (13, 13), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    h = hsv[:, :, 0]/180*255-int((hue-hue_range)/180*255)
+    h = np.asarray(h, np.uint8)
+    _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+    return h_
 
 
 if __name__ == "__main__":
