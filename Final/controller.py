@@ -26,6 +26,8 @@ MASK_LINE_MIDDLE = (None, 30, 0, 0)
 MASK_LINE_BACKWARD = (None, 25, 0, -85)
 MASK_OWO = (40, None, 0, 0)
 
+MAX_MISSION_TIME = 200
+
 def condition(func):
     pass
 
@@ -46,6 +48,8 @@ class Controller():
         self.color = 'r'
         self.need_drop = False
         self.dropped = False
+        self.global_time = 0
+
         if not debug:
             try:
                 self.plane = Plane()
@@ -56,29 +60,81 @@ class Controller():
             self.plane = Plane(debug=1)
 
     def mission_start(self):
-        # all mission fun return "ret, pitch, roll, yaw"
-        self.plane.update(1, 0, 0, 0)
-        self.loop(self.forward_experimental, self.condition_light, sec=30)
-        # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=30)
-        self.plane.update(1, 0, 0, 0)
-        self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
-        self.plane.roll_pid.set_windup_guard(40)
-        self.loop(self.stable_rad, self.condition_not_red, sec=30)
-        # self.loop(self.pause, self.condition_not_red, sec=10)
-        if self.light_color == 2:
-            self.color = 'g'
-        elif self.light_color == 3:
-            self.color = 'b'
-        else:
-            self.color = 'r'
-        print('Color:', self.color)
-        self.plane.pitch_pid.reset()
-        self.plane.roll_pid.reset()
-        self.plane.update(1, 90, 0, 0)
-        self.loop(self.pause_color, self.condition_no_light, sec=10)
-        self.loop(self.pause_color, sec=1.5)
-        self.following(ignore_light=True, drop=True)
-        self.following(ignore_light=True)
+        try:
+            # self.stop()
+            # all mission fun return "ret, pitch, roll, yaw"
+            # 起飛、機身已穩定五秒裝，重設各方向移動
+            self.plane.update(1, 0, 0, 0)
+            # 往前盲走，直到看到紅綠燈
+            # self.loop(self.forward_experimental, self.condition_light, sec=30)
+            # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=30)
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, self.condition_light, sec=10)
+            # 重設各方向移動，並設定紅綠燈用 PID 值
+            self.plane.update(1, 0, 0, 0)
+            self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
+            self.plane.roll_pid.set_windup_guard(40)
+            self.loop(self.stable_rad, self.condition_not_red, sec=30)
+            # self.loop(self.pause, self.condition_not_red, sec=10)
+            if self.light_color == 2:
+                self.color = 'g'
+            elif self.light_color == 3:
+                self.color = 'b'
+            else:
+                self.color = 'r'
+            print('Color:', self.color)
+            # 找到燈號，重設 PID 值
+            self.plane.pitch_pid.reset()
+            self.plane.roll_pid.reset()
+            self.plane.update(1, 90, 0, 0)
+            # 往前盲走，直到沒看到紅綠燈
+            self.loop(self.pause_color, self.condition_no_light, sec=10)
+            self.loop(self.pause_color, sec=1.5)
+            # 往前移動，看到對應顏色沙包就投下
+            self.following(ignore_light=True, drop=True)
+            # Work in Progress
+            self.following(ignore_light=True)
+        except:
+            print('Forced stopped')
+
+
+    def mission_yolo(self):
+        """盲走前進 10 秒後降落"""
+        try:
+            print('Warning -- Yolo strategy')
+            # self.stop()
+            # all mission fun return "ret, pitch, roll, yaw"
+            # 起飛、機身已穩定五秒裝，重設各方向移動
+            self.plane.update(1, 0, 0, 0)
+            # 往前盲走 10 秒，直接降落
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, sec=10)
+        except:
+            print('Forced stopped')
+
+    def mission_yolo_2(self):
+        """盲走到紅綠燈，等待 15 秒後前進並降落"""
+        try:
+            print('Warning -- Yolo strategy')
+            # self.stop()
+            # all mission fun return "ret, pitch, roll, yaw"
+            # 起飛、機身已穩定五秒裝，重設各方向移動
+            self.plane.update(1, 0, 0, 0)
+            # 往前盲走 2 秒，進入紅綠燈區
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, sec=2)
+            # 停止 15 秒，等待切換燈號
+            self.plane.update(1, 0, 0, 0)
+            self.loop(self.pause, sec=15)
+            # 往前盲走 3 秒，直接降落
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, sec=3)
+        except:
+            print('Forced stopped')
+
+
+    def stop(self):
+        raise Exception
 
     def conditoin_drop(self):
         return self.condition_has_color()
@@ -89,23 +145,6 @@ class Controller():
             return True
 
         return False
-
-    def following_loiter(self, light_only=False, ignore_light=False):
-        while True:
-            if light_only:
-                self.loop(self.forward_loiter, self.condition_light, sec=30)
-            else:
-                if ignore_light:
-                    self.loop(self.forward_loiter, self.condition_forward, sec=30)
-                else:
-                    self.loop(self.forward_loiter, self.condition_forward_light, sec=30)
-            # self.loop(self.forward_loiter, self.forward_condition, sec=30)
-            # self.loop(self.forward, self.forward_condition, sec=30)
-            if not ignore_light:
-                if self.light_color:
-                    break
-            self.plane.update(1, -45, 0, 0)
-            self.loop(self.pause, sec=3)
 
     def following(self, light_only=False, ignore_light=False, drop=False):
         while True:
@@ -147,10 +186,11 @@ class Controller():
     def loop(self, func_loop, func_condition=None, sec=10):
         condition_count = 0
         now = time() 
-        while time()-now<sec:
+        while time()-now<sec and self.global_time <= MAX_MISSION_TIME:
             if self.dropped == True:
-                self.feedback_queue.put('8===Dropped===')
-            self.feedback_queue.put('9===Loop Time: {}==='.format(int(time()-now)))
+                self.feedback_queue.put('7===Dropped===')
+            self.feedback_queue.put('8===Loop Time: {}==='.format(int(time()-now)))
+            self.feedback_queue.put('9===Global Time: {}==='.format(self.global_time))
             if self._stop:
                 break
             self._get_frame()
@@ -164,6 +204,10 @@ class Controller():
                 break
             func_loop()
             self.frame_finish()
+
+        self.global_time += int(time()-now)
+
+        
     
     # def pause(self):
     #     self.feedback_queue.put('1PAUSE')
@@ -223,26 +267,6 @@ class Controller():
                 return True
 
         return False
-
-    def forward_loiter(self):
-        self.feedback_queue.put('1===Forward Loiter===')
-        pitch = 70
-        self.plane.update(1, pitch, 0, 0)
-
-    def forward(self):
-        self.feedback_queue.put('1===Forward===')
-        pitch = 70
-        # check break condition
-        # ret, _, roll, yaw = self._stabilize()
-        ret, pitch_fector, roll, yaw = self._along()
-        pitch_ = self._find_center(mask=MASK_OWO, data='y')
-
-        pitch_overrided = int(pitch * pitch_fector)
-        print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(ret, pitch_overrided, pitch_fector, roll, yaw))
-            # print(ret, pitch, roll, yaw, sep='\t')
-        # Testing
-        # self.plane.update(ret, pitch_overrided, roll, yaw)
-        self.plane.update(ret, pitch_overrided, roll, yaw)
 
     def forward_experimental(self):
         self.feedback_queue.put('1===Forward Experimental===')
