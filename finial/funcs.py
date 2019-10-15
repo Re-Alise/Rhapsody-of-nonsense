@@ -5,12 +5,15 @@ from time import sleep
 
 # from menu import MENU
 
+useCarema = 0
+
 IMAGE_SIZE = (320, 240)
-path = ""
+IMAGE_SIZE = (240, 320)
 path = "./../video/"
+path = "slice_video/"
 # path = "C:\\Users\\YUMI.Lin\\Desktop\\video\\"
 # fileName = "radline.avi"
-fileName = "test8.avi"
+fileName = "1570964034.avi"
 gaussian = (13, 13)
 kernel = np.ones((3,3),np.uint8)
 adjust = 0
@@ -24,6 +27,7 @@ target_color = 0
 step = -1
 
 # PARAMETER
+use_auto_c = 0
 normal_offset = 180
 normal_threshold = 100
 gray_threshold = 100
@@ -36,6 +40,7 @@ hue_threshold = 2*hue_range
 hue_red = 180 # use overfloat value don't use value like 1, 0, 5 etc..
 hue_green = 90
 hue_blue = 120
+hue_floor = 20
 
 default_drop_color = 3
 default_land_color = 2
@@ -96,14 +101,16 @@ names = [
     'hue_red',
     'hue_green',
     'hue_blue',
+    'hue_floor',
 ]
 modes = [
-    'normal, c, gray',
-    'light, a, b, a_',
-    'color, s',
-    'red, r, s, h',
-    'green, g, s, h',
-    'blue, b, s, h'
+    'normal,\tc, gray',
+    'light,\ta, b, a_',
+    'color,\ts',
+    'red, r,\ts, h',
+    'green,\tg, s, h',
+    'blue,\tb, s, h',
+    'floor,\tf, s'
 ]
 
 # def select_pics()
@@ -176,10 +183,10 @@ def normal_map(frame):
     r = frame[:,:,2]
     b = frame[:, :, 0]
     c = b-r+ normal_offset
-    _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
     # c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
+    _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV)# +cv2.THRESH_OTSU)
     # binarized_frame = np.bitwise_and(c_, gray_)
     binarized_frame = c_
     binarized_frame = cv2.cvtColor(binarized_frame, cv2.COLOR_GRAY2BGR)
@@ -247,6 +254,18 @@ def blue_map(frame):
     _, h_ = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
     blue = np.bitwise_and(s_, h_)
     tmp = cv2.hconcat([blue, s_, h_])
+    tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
+    tmp = cv2.hconcat([frame, tmp])
+    return tmp
+
+def floor_map(frame):
+    frame = cv2.GaussianBlur(frame, (13, 13), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    h = hsv[:, :, 0]/180*255-int((hue_floor-hue_range)/180*255)
+    h = np.asarray(h, np.uint8)
+    _, floor = cv2.threshold(h, hue_threshold, 255, cv2.THRESH_BINARY_INV)#+cv2.THRESH_OTSU)
+    # floor = np.bitwise_and(s_, h_)
+    tmp = cv2.hconcat([floor, h])
     tmp = cv2.cvtColor(tmp, cv2.COLOR_GRAY2BGR)
     tmp = cv2.hconcat([frame, tmp])
     return tmp
@@ -521,7 +540,8 @@ class MENU():
             9: ('hue_red', hue_red,''),
             10: ('hue_green', hue_green,''),
             11: ('hue_blue', hue_blue,''),
-            12: ('----end----', '', '')
+            12: ('hue_floor', hue_floor, ''),
+            13: ('----end----', '', ''),
             # '----end----': 
         }
         return dd
@@ -557,7 +577,7 @@ class MENU():
     def down(self, ):
         global select, display
         if select == self.show_num-1:
-            if not display == 13-self.show_num:
+            if not display == 14-self.show_num:
                 display += 1
         else:
             select += 1
@@ -576,6 +596,7 @@ class MENU():
         global hue_red
         global hue_green
         global hue_blue
+        global hue_floor
         now_select = names[display+select]
         if now_select == 'normal_offset':
             normal_offset = normal_offset - offect_num
@@ -601,6 +622,8 @@ class MENU():
             hue_green = hue_green - offect_num
         if now_select == 'hue_blue':
             hue_blue = hue_blue - offect_num
+        if now_select == 'hue_floor':
+            hue_floor = hue_floor-offect_num
 
     def right(self, offect_num):
         global names
@@ -616,6 +639,7 @@ class MENU():
         global hue_red
         global hue_green
         global hue_blue
+        global hue_floor
         now_select = names[display+select]
         if now_select == 'normal_offset':
             normal_offset = normal_offset + offect_num
@@ -626,7 +650,7 @@ class MENU():
         if now_select == 'na_offset':
             na_offset = na_offset + offect_num
         if now_select == 'nb_offset':
-            nb_offset = nb_offset + offect_num
+            nb_offset = nb_offset + off
         if now_select == 'light_threshold':
             light_threshold = light_threshold + offect_num
         if now_select == 'saturation_threshold':
@@ -641,6 +665,8 @@ class MENU():
             hue_green = hue_green + offect_num
         if now_select == 'hue_blue':
             hue_blue = hue_blue + offect_num
+        if now_select == 'hue_floor':
+            hue_floor = hue_floor+offect_num
 
     def show(self):
         if self.mode == 0:
@@ -655,17 +681,24 @@ class MENU():
             return green_map(frame)
         elif self.mode == 5:
             return blue_map(frame)
+        elif self.mode == 6:
+            return floor_map(frame)
 
     def chmod(self, mode):
         self.mode = mode
 
     def nextmode(self):
         self.mode += 1
-        self.mode %= 6
+        self.mode %= 7
 
 if __name__ == "__main__":
     try:
-        cap = cv2.VideoCapture(path+fileName) 
+        if useCarema:
+            cap = cv2.VideoCapture(2)
+        else: 
+            cap = cv2.VideoCapture(path+fileName)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
         stop = 0
         pause = 0
         pause_ = 1
@@ -676,7 +709,9 @@ if __name__ == "__main__":
             if not pause:
                 ret, frame = cap.read()
             if ret:
+                print(menu.mode)
                 cv2.imshow('Replay', cv2.hconcat([menu.show_menu(),menu.show()]))
+                # cv2.imshow('Replay', cv2.hconcat([menu.show()]))
                 # cv2.imshow('Replay', show_menu())
                 # while 1: 
                 inn = cv2.waitKey(1)
@@ -700,7 +735,7 @@ if __name__ == "__main__":
                     # 'u': lambda : menu.left(1000),
                     # "o": lambda : menu.right(1000),
                 }
-                print(inn)
+                # print(inn)
                 for key in switch:
                     if inn == key:
                         switch[key]()
