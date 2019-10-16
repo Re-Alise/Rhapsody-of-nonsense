@@ -3,7 +3,7 @@ from threading import Thread
 from queue import Queue
 from plane import Plane
 from sonic import Sonic
-from box import Box, TBox
+from box import Box
 from tfmini import TFMiniLidar
 from data import PIN, DC, MASK
 from camera import Record
@@ -90,7 +90,8 @@ if __name__ == '__main__':
                 plane.mc(DC.LOITER)
                 plane.arm()
                 plane.take_off(55, 16*8)
-                plane.take_off(100, 10*8)
+                # plane.take_off(100, 10*8)
+                plane.take_off(90, 10*8)
                 plane.idle(5)
                 if yolo == 1:
                     controller.mission_yolo_1()

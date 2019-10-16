@@ -9,6 +9,13 @@ from box import Box
 import numpy as np
 import cv2
 
+
+# ==========Ultra Important Things==========
+hue_floor = 24
+light_threshold = 100
+na_offset = 220
+nb_offset = 200
+
 # ==========================================
 delta_c = 0.03
 C_START = 3.5
@@ -27,7 +34,7 @@ MASK_LINE_MIDDLE = (None, 30, 0, 0)
 MASK_LINE_BACKWARD = (None, 25, 0, -85)
 MASK_OWO = (40, None, 0, 0)
 
-MAX_MISSION_TIME = 200
+MAX_MISSION_TIME = 170
 
 # ============= From funcs =================
 # IMAGE_SIZE = (320, 240)
@@ -48,20 +55,17 @@ kernel = np.ones((3,3),np.uint8)
 # target_color = 0
 # step = -1
 
+
 # PARAMETER
 normal_offset = 180
 normal_threshold = 100
 gray_threshold = 100
-na_offset = 220
-nb_offset = 200
-light_threshold = 100
 saturation_threshold = 145
 hue_range = 20
 hue_threshold = 2*hue_range
 hue_red = 180 # use overfloat value don't use value like 1, 0, 5 etc..
 hue_green = 90
 hue_blue = 120
-hue_floor = 24
 
 default_drop_color = 3
 default_land_color = 2
@@ -109,6 +113,7 @@ class Controller():
         self.global_time = 0
         self.binarization_state = 0
         self.need_pause = False
+        self.start_time = 0
 
         if not debug:
             try:
@@ -121,6 +126,7 @@ class Controller():
 
     def mission_start(self):
         try:
+            self.start_time = time()
             # normal:0, light:1, color:2
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -166,15 +172,70 @@ class Controller():
             self.following(yaw=False, condition=self.condition_no_drop_color)
             self.box.drop()
             self.binarization_state = 0
-            self.loop(self.forward, self.condition_all_floor, sec=30)
+            self.loop(self.forward, self.condition_all_floor, sec=6)
 
             # self.following(ignore_light=True)
         except:
             print('=' * 20 + 'Forced stopped')
 
-    def mission_yolo(self):
+    def mission_star_alternative(self):
+        try:
+            self.start_time = time()
+            # normal:0, light:1, color:2
+            # self.halt()
+            # all mission fun return "ret, pitch, roll, yaw"
+            # 起飛、機身已穩定五秒裝，重設各方向移動
+            print('=' * 20 + '前往紅綠燈')
+            self.binarization_state = 0
+            self.plane.update(1, 0, 0, 0)
+            # 往前盲走，直到看到紅綠燈
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, self.condition_light, sec=10)
+            # 重設各方向移動，並設定紅綠燈用 PID 值
+            print('=' * 20 + '定在紅綠燈')
+            self.binarization_state = 1
+            self.plane.update(1, 0, 0, 0)
+            self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
+            self.plane.roll_pid.set_windup_guard(40)
+            self.loop(self.stable_red, self.condition_not_red, sec=30)
+            # self.loop(self.pause, self.condition_not_red, sec=15)
+            if self.light_color == 2:
+                self.color = 2
+            elif self.light_color == 3:
+                self.color = 3
+            else:
+                self.color = 3
+            print('=' * 20 + 'Color:', self.color)
+            # 找到燈號，重設 PID 值
+            self.binarization_state = 0
+            self.plane.pitch_pid.reset()
+            self.plane.roll_pid.reset()
+            print('=' * 20 + '盲走')
+            # 往前盲走，直到沒看到紅綠燈
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, self.condition_no_light, sec=10)
+            self.loop(self.pause, sec=1.5)
+            # 往前移動，直到看到大色塊（地毯）
+            print('=' * 20 + '轉彎到色塊前')
+            self.following(condition=self.condition_forward_has_color)
+            # self.loop(self.forward, self.condition_has_color, sec=30)
+            # 往前移動，看到對應顏色或找不到色塊，沙包就投下
+            self.binarization_state = 2
+            print('=' * 20 + '前進丟沙包')
+            self.following(drop=True, yaw=False)
+            self.following(yaw=False, condition=self.condition_no_drop_color)
+            self.box.drop()
+            self.binarization_state = 0
+            self.loop(self.forward, self.condition_all_floor, sec=6)
+
+            # self.following(ignore_light=True)
+        except:
+            print('=' * 20 + 'Forced stopped')
+
+    def mission_yolo_1(self):
         """盲走前進 10 秒後降落"""
         try:
+            self.start_time = time()
             print('Warning -- Yolo strategy 1')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -189,6 +250,7 @@ class Controller():
     def mission_yolo_2(self):
         """盲走到紅綠燈，等待 15 秒後前進並降落"""
         try:
+            self.start_time = time()
             print('Warning -- Yolo strategy 2')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -209,6 +271,7 @@ class Controller():
     def mission_yolo_3(self):
         """走到紅綠燈，等待燈號變色後前進並降落"""
         try:
+            self.start_time = time()
             print('Warning -- Yolo strategy 3')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -225,6 +288,8 @@ class Controller():
             self.loop(self.pause, sec=1)
 
             # 等待紅綠燈變色
+            self.plane.update(1, 0, 0, 0)
+            self.binarization_state = 1
             self.loop(self.pause, self.condition_not_red, sec=30)
             # self.loop(self.pause, self.condition_not_red, sec=15)
             if self.light_color == 2:
@@ -351,8 +416,9 @@ class Controller():
                 self.feedback_queue.put('7===Dropped===')
             self.feedback_queue.put(
                 '8===Loop Time: {}==='.format(int(time()-now)))
+            self.global_time = time() - self.start_time()
             self.feedback_queue.put(
-                '9===Global Time: {}==='.format(self.global_time))
+                '9===Global Time: {}==='.format(int(self.global_time)))
             if self._stop:
                 break
             if func_condition:
@@ -365,8 +431,6 @@ class Controller():
                 break
             func_loop()
             self.frame_finish()
-
-        self.global_time += int(time()-now)
 
     def pause(self):
         self.feedback_queue.put('1===PAUSE===')
