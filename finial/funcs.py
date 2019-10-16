@@ -7,13 +7,14 @@ from time import sleep
 
 useCarema = 0
 
-IMAGE_SIZE = (320, 240)
 IMAGE_SIZE = (240, 320)
-path = "./../video/"
+IMAGE_SIZE = (320, 240)
 path = "slice_video/"
+path = "./../video/"
 # path = "C:\\Users\\YUMI.Lin\\Desktop\\video\\"
 # fileName = "radline.avi"
 fileName = "1570964034.avi"
+fileName = "color2.avi"
 gaussian = (13, 13)
 kernel = np.ones((3,3),np.uint8)
 adjust = 0
@@ -40,7 +41,7 @@ hue_threshold = 2*hue_range
 hue_red = 180 # use overfloat value don't use value like 1, 0, 5 etc..
 hue_green = 90
 hue_blue = 120
-hue_floor = 20
+hue_floor = 24
 
 default_drop_color = 3
 default_land_color = 2
@@ -650,7 +651,7 @@ class MENU():
         if now_select == 'na_offset':
             na_offset = na_offset + offect_num
         if now_select == 'nb_offset':
-            nb_offset = nb_offset + off
+            nb_offset = nb_offset + offect_num
         if now_select == 'light_threshold':
             light_threshold = light_threshold + offect_num
         if now_select == 'saturation_threshold':

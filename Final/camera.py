@@ -83,7 +83,7 @@ class Record(Thread):
             if ret:
                 self.process()
                 if isinstance(self.source_path, str):
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+                    frame = cv2.resize(frame, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
                 if self.save:
                     # print(frame.shape)
                     self.out.write(cv2.hconcat([frame, self.bin_]))
