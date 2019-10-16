@@ -65,6 +65,10 @@ if __name__ == '__main__':
         if sys.argv[1] == '4':
             yolo = 4
             print('Warning: Alternative start (with roll)')
+
+        if sys.argv[1] == '5':
+            yolo = 5
+            print('Warning: Mission Test')
     else:
         save = 1
 
@@ -105,6 +109,8 @@ if __name__ == '__main__':
                     controller.mission_yolo_3()
                 elif yolo == 4:
                     controller.mission_start_alternative()
+                elif yolo == 5:
+                    controller.mission_test()
                 else:
                     controller.mission_start()
 

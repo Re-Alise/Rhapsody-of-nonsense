@@ -178,18 +178,81 @@ class Controller():
             self.box.drop()
             self.binarization_state = 0
             # 走到看見終點線
-            self.loop(self.forward, self.condition_all_floor, cond2=detect_finishline, sec=30)
+            self.loop(self.forward, self.condition_all_floor, cond2=self.detect_finishline, sec=30)
             # 盲走直到看見紅色
             self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, self.condition_has_big_red, sec=10)
             # 繞圈直到看見目標
             self.loop(self.around, self.condition_has_target_color, sec=10)
             # 飛過去
-            self.loop(self.stable, sec=7)
+            self.loop(self.stable_target, sec=7)
 
             # self.following(ignore_light=True)
         except:
             print('=' * 20 + 'Forced stopped')
+
+    def mission_test(self):
+        # try:
+            
+
+        #     # self.following(ignore_light=True)
+        # except:
+        #     print('=' * 20 + 'Forced stopped')
+        self.start_time = time()
+        # normal:0, light:1, color:2
+        # self.halt()
+        # all mission fun return "ret, pitch, roll, yaw"
+        # 起飛、機身已穩定五秒裝，重設各方向移動
+        print('=' * 20 + '前往紅綠燈')
+        self.binarization_state = 0
+        # self.plane.update(1, 0, 0, 0)
+        # 往前盲走，直到看到紅綠燈
+        self.plane.update(1, 90, 0, 0)
+        self.loop(self.pause, self.condition_light, sec=1)
+        # 重設各方向移動，並設定紅綠燈用 PID 值
+        print('=' * 20 + '定在紅綠燈')
+        self.binarization_state = 1
+        # self.plane.update(1, 0, 0, 0)
+        self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
+        self.plane.roll_pid.set_windup_guard(40)
+        self.loop(self.stable_red, self.condition_not_red, sec=1)
+        # self.loop(self.pause, self.condition_not_red, sec=15)
+        if self.light_color == 2:
+            self.color = 2
+        elif self.light_color == 3:
+            self.color = 3
+        else:
+            self.color = 3
+        print('=' * 20 + 'Color:', self.color)
+        # 找到燈號，重設 PID 值
+        self.binarization_state = 0
+        self.plane.pitch_pid.reset()
+        self.plane.roll_pid.reset()
+        print('=' * 20 + '盲走')
+        # 往前盲走，直到沒看到紅綠燈
+        self.plane.update(1, 90, 0, 0)
+        self.loop(self.pause, self.condition_no_light, sec=1)
+        self.loop(self.pause, sec=1.5)
+        # 往前移動，直到看到大色塊（地毯）
+        print('=' * 20 + '轉彎到色塊前')
+        self.following(condition=self.condition_forward_has_color)
+        # self.loop(self.forward, self.condition_has_color, sec=30)
+        # 往前移動，看到對應顏色或找不到色塊，沙包就投下
+        self.binarization_state = 2
+        print('=' * 20 + '前進丟沙包')
+        self.following(drop=True, yaw=False)
+        self.following(yaw=False, condition=self.condition_no_drop_color)
+        self.box.drop()
+        self.binarization_state = 0
+        # 走到看見終點線
+        self.loop(self.forward, self.condition_all_floor, cond2=self.detect_finishline, sec=1)
+        # 盲走直到看見紅色
+        self.plane.update(1, 90, 0, 0)
+        self.loop(self.pause, self.condition_has_big_red, sec=1)
+        # 繞圈直到看見目標
+        self.loop(self.around, self.condition_has_target_color, sec=1)
+        # 飛過去
+        self.loop(self.stable_target, sec=1)
 
     def mission_start_alternative(self):
         try:
@@ -574,7 +637,7 @@ class Controller():
         _, a = cv2.threshold(a, 100, 255, cv2.THRESH_BINARY_INV)
         pitch = self._find_center(frame=a, mask=MASK_ALL, data='y')
         roll = self._find_center(frame=a, mask=MASK_ALL, data='x')
-        self.plane.update(1, pitch, roll, 0)
+        self.plane.update(1, pitch, 0, 0)
 
     def stable_target(self):
         target = self.target_map()
@@ -583,7 +646,8 @@ class Controller():
         roll = self._find_center(frame=target, mask=MASK_ALL, data='x')
         self.plane.update(1, pitch, roll, 0)
 
-    def around(self, bined):
+    def around(self):
+        bined = self.red_map()
         self.feedback_queue.put('1===around Red===')
         pitch = 65
         roll = self._find_center(frame=bined, mask=MASK_MIDDLE, data='x')
