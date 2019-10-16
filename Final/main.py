@@ -43,9 +43,24 @@ def beep(pi):
 
 if __name__ == '__main__':
     print('===============Ver3================')
+    yolo = 0
     if len(sys.argv)>1:
         if sys.argv[1] == 'n':
             save = 0
+        else:
+            save = 1
+
+        if sys.argv[1] == '1':
+            yolo = 1
+            print('Warning: YOLO strategy 1')
+
+        if sys.argv[1] == '2':
+            yolo = 2
+            print('Warning: YOLO strategy 2')
+
+        if sys.argv[1] == '3':
+            yolo = 3
+            print('Warning: YOLO strategy 3')
     else:
         save = 1
 
@@ -77,7 +92,15 @@ if __name__ == '__main__':
                 plane.take_off(55, 16*8)
                 plane.take_off(100, 10*8)
                 plane.idle(5)
-                controller.mission_start()                  
+                if yolo == 1:
+                    controller.mission_yolo_1()
+                elif yolo == 2:
+                    controller.mission_yolo_2()
+                elif yolo == 3:
+                    controller.mission_yolo_3()
+                else:
+                    controller.mission_start()
+
                 box.close()
                 plane.land()
                 plane.mc(DC.STABLIZE)

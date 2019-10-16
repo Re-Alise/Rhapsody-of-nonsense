@@ -53,14 +53,15 @@ normal_offset = 180
 normal_threshold = 100
 gray_threshold = 100
 na_offset = 220
-nb_offset = 220
+nb_offset = 200
 light_threshold = 100
 saturation_threshold = 145
 hue_range = 20
 hue_threshold = 2*hue_range
 hue_red = 180 # use overfloat value don't use value like 1, 0, 5 etc..
-hue_green = 54
-hue_blue = 100
+hue_green = 90
+hue_blue = 120
+hue_floor = 24
 
 default_drop_color = 3
 default_land_color = 2
@@ -124,12 +125,14 @@ class Controller():
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
             # 起飛、機身已穩定五秒裝，重設各方向移動
+            print('=' * 20 + '前往紅綠燈')
             self.binarization_state = 0
             self.plane.update(1, 0, 0, 0)
             # 往前盲走，直到看到紅綠燈
             self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, self.condition_light, sec=10)
             # 重設各方向移動，並設定紅綠燈用 PID 值
+            print('=' * 20 + '定在紅綠燈')
             self.binarization_state = 1
             self.plane.update(1, 0, 0, 0)
             self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
@@ -142,34 +145,37 @@ class Controller():
                 self.color = 3
             else:
                 self.color = 3
-            print('Color:', self.color)
+            print('=' * 20 + 'Color:', self.color)
             # 找到燈號，重設 PID 值
             self.binarization_state = 0
             self.plane.pitch_pid.reset()
             self.plane.roll_pid.reset()
-            self.plane.update(1, 90, 0, 0)
+            print('=' * 20 + '盲走')
             # 往前盲走，直到沒看到紅綠燈
+            self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, self.condition_no_light, sec=10)
             self.loop(self.pause, sec=1.5)
-            # # Work in Progress
             # 往前移動，直到看到大色塊（地毯）
-            self.following(condition=self.condition_has_color)
+            print('=' * 20 + '轉彎到色塊前')
+            self.following(condition=self.condition_forward_has_color)
             # self.loop(self.forward, self.condition_has_color, sec=30)
             # 往前移動，看到對應顏色或找不到色塊，沙包就投下
             self.binarization_state = 2
+            print('=' * 20 + '前進丟沙包')
             self.following(drop=True, yaw=False)
+            self.following(yaw=False, condition=self.condition_no_drop_color)
             self.box.drop()
             self.binarization_state = 0
             self.loop(self.forward, self.condition_all_floor, sec=30)
 
             # self.following(ignore_light=True)
         except:
-            print('Forced stopped')
+            print('=' * 20 + 'Forced stopped')
 
     def mission_yolo(self):
         """盲走前進 10 秒後降落"""
         try:
-            print('Warning -- Yolo strategy')
+            print('Warning -- Yolo strategy 1')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
             # 起飛、機身已穩定五秒裝，重設各方向移動
@@ -183,7 +189,7 @@ class Controller():
     def mission_yolo_2(self):
         """盲走到紅綠燈，等待 15 秒後前進並降落"""
         try:
-            print('Warning -- Yolo strategy')
+            print('Warning -- Yolo strategy 2')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
             # 起飛、機身已穩定五秒裝，重設各方向移動
@@ -200,6 +206,41 @@ class Controller():
         except:
             print('Forced stopped')
 
+    def mission_yolo_3(self):
+        """走到紅綠燈，等待燈號變色後前進並降落"""
+        try:
+            print('Warning -- Yolo strategy 3')
+            # self.halt()
+            # all mission fun return "ret, pitch, roll, yaw"
+            # 起飛、機身已穩定五秒裝，重設各方向移動
+            print('=' * 20 + '前往紅綠燈')
+            self.binarization_state = 0
+            self.plane.update(1, 0, 0, 0)
+            # 往前盲走，直到看到紅綠燈
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, self.condition_light, sec=10)
+
+            # 延遲一秒，確認在紅綠燈上
+            self.plane.update(1, 70, 0, 0)
+            self.loop(self.pause, sec=1)
+
+            # 等待紅綠燈變色
+            self.loop(self.pause, self.condition_not_red, sec=30)
+            # self.loop(self.pause, self.condition_not_red, sec=15)
+            if self.light_color == 2:
+                self.color = 2
+            elif self.light_color == 3:
+                self.color = 3
+            else:
+                self.color = 3
+            print('=' * 20 + 'Color:', self.color)
+
+            # 前進五秒，然後降落
+            self.plane.update(1, 70, 0, 0)
+            self.loop(self.pause, sec=5)
+        except:
+            print('Forced stopped')
+
     def halt(self):
         raise Exception
 
@@ -213,6 +254,12 @@ class Controller():
 
         self.need_pause = False
         return 0
+
+    def condition_forward_has_color(self):
+        if self.condition_has_color() or self.condition_all_floor():
+            return True
+
+        return False
 
     def condition_has_color(self):
         s_ = self.get_saturation_binarized()
@@ -267,6 +314,12 @@ class Controller():
             self.plane.update(1, -45, 0, 0)
             self.loop(self.pause, sec=3)
 
+    def condition_no_drop_color(self):
+        if not self.condition_has_color():
+            return True
+
+        return False
+
     def condition_forward_color(self):
         if self.condition_has_color() and self.condition_has_drop_color():
             self.need_drop = True
@@ -289,7 +342,11 @@ class Controller():
         condition_count = 0
         now = time()
         self.need_pause = False
-        while time()-now < sec and self.global_time <= MAX_MISSION_TIME:
+        while time()-now < sec:
+            self._get_frame()
+            if self.global_time > MAX_MISSION_TIME:
+                print('=========== Time Out ===========')
+                break
             if self.dropped == True:
                 self.feedback_queue.put('7===Dropped===')
             self.feedback_queue.put(
@@ -298,7 +355,6 @@ class Controller():
                 '9===Global Time: {}==='.format(self.global_time))
             if self._stop:
                 break
-            self._get_frame()
             if func_condition:
                 if func_condition():
                     condition_count += 1
@@ -362,8 +418,8 @@ class Controller():
 
         pitch_overrided = int(pitch * pitch_fector)
 
-        print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
-            ret, pitch_overrided, pitch_fector, roll, yaw))
+        # print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
+        #     ret, pitch_overrided, pitch_fector, roll, yaw))
         self.plane.update(ret, pitch_overrided, roll, yaw)
 
     def forward_no_yaw(self):
@@ -379,8 +435,8 @@ class Controller():
 
         pitch_overrided = int(pitch * pitch_fector)
 
-        print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
-            ret, pitch_overrided, pitch_fector, roll, yaw))
+        # print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
+        #     ret, pitch_overrided, pitch_fector, roll, yaw))
         self.plane.update(ret, pitch_overrided, roll, 0)
 
 
@@ -455,7 +511,7 @@ class Controller():
                 print('G', na, nb)
                 return 3
         else:
-            # print('X', na, nb)
+            print('X', na, nb)
             return 0
 
 
@@ -468,15 +524,16 @@ class Controller():
         frame = cv2.GaussianBlur(frame, (13, 13), 0)
         self.frame_new = frame
 
+        print('binarization state:', self.binarization_state)
         if self.binarization_state == 0:
-            binarized_frame = self.normal_map(self.frame_new)
-        elif: self.binarization_state == 1:
-            binarized_frame = self.light_map(self.frame_new)
+            binarized_frame = self.normal_map(frame)
+        elif self.binarization_state == 1:
+            binarized_frame = self.light_map(frame)
         elif self.binarization_state == 2:
-            binarized_frame = self.color_map(self.frame_new)
+            binarized_frame = self.color_map(frame)
         else:
             print('invalid binarization state')
-            binarized_frame = self.normal_map(self.frame_new)
+            binarized_frame = self.normal_map(frame)
         return binarized_frame
 
     def _mask(self, frame=None, mask=(None, None, 0, 0), img_size=IMAGE_SIZE):
@@ -578,10 +635,11 @@ class Controller():
         r = frame[:,:,2]
         b = frame[:, :, 0]
         c = b-r+ normal_offset
-        _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+        # _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+        _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         # c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
+        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
         # binarized_frame = np.bitwise_and(c_, gray_)
         binarized_frame = c_
         return binarized_frame
