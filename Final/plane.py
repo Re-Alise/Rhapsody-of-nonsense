@@ -148,7 +148,7 @@ class Plane():
         yaw = self.yaw_pid.update(yaw_error)
         pitch = self.pitch_pid.update(pitch_error)
         roll = self.roll_pid.update(roll_error)
-        display('UPDATE: yaw:', yaw, 'pitch:', pitch, 'roll:', roll)
+        # display('UPDATE: yaw:', yaw, 'pitch:', pitch, 'roll:', roll)
         # Warning: Input for pitch is reversed
         if noERROR:
             self.output([(DC.YAW, yaw), (DC.PITCH, -pitch), (DC.ROLL, roll)])

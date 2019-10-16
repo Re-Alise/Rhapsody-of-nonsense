@@ -418,8 +418,8 @@ class Controller():
 
         pitch_overrided = int(pitch * pitch_fector)
 
-        print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
-            ret, pitch_overrided, pitch_fector, roll, yaw))
+        # print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
+        #     ret, pitch_overrided, pitch_fector, roll, yaw))
         self.plane.update(ret, pitch_overrided, roll, yaw)
 
     def forward_no_yaw(self):
@@ -435,8 +435,8 @@ class Controller():
 
         pitch_overrided = int(pitch * pitch_fector)
 
-        print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
-            ret, pitch_overrided, pitch_fector, roll, yaw))
+        # print('ret: {}\t pitch overrided: {}\t pitch fector: {}\t roll: {}\t yaw: {}'.format(
+        #     ret, pitch_overrided, pitch_fector, roll, yaw))
         self.plane.update(ret, pitch_overrided, roll, 0)
 
 
