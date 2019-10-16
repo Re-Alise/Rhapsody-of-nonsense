@@ -27,7 +27,7 @@ MASK_LINE_MIDDLE = (None, 30, 0, 0)
 MASK_LINE_BACKWARD = (None, 25, 0, -85)
 MASK_OWO = (40, None, 0, 0)
 
-MAX_MISSION_TIME = 200
+MAX_MISSION_TIME = 170
 
 # ============= From funcs =================
 # IMAGE_SIZE = (320, 240)
@@ -48,20 +48,22 @@ kernel = np.ones((3,3),np.uint8)
 # target_color = 0
 # step = -1
 
+#
+hue_floor = 24
+light_threshold = 100
+na_offset = 220
+nb_offset = 200
+
 # PARAMETER
 normal_offset = 180
 normal_threshold = 100
 gray_threshold = 100
-na_offset = 220
-nb_offset = 200
-light_threshold = 100
 saturation_threshold = 145
 hue_range = 20
 hue_threshold = 2*hue_range
 hue_red = 180 # use overfloat value don't use value like 1, 0, 5 etc..
 hue_green = 90
 hue_blue = 120
-hue_floor = 24
 
 default_drop_color = 3
 default_land_color = 2
@@ -109,6 +111,7 @@ class Controller():
         self.global_time = 0
         self.binarization_state = 0
         self.need_pause = False
+        self.start_time = 0
 
         if not debug:
             try:
@@ -121,6 +124,7 @@ class Controller():
 
     def mission_start(self):
         try:
+            self.start_time = time()
             # normal:0, light:1, color:2
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -172,9 +176,10 @@ class Controller():
         except:
             print('=' * 20 + 'Forced stopped')
 
-    def mission_yolo(self):
+    def mission_yolo_1(self):
         """盲走前進 10 秒後降落"""
         try:
+            self.start_time = time()
             print('Warning -- Yolo strategy 1')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -189,6 +194,7 @@ class Controller():
     def mission_yolo_2(self):
         """盲走到紅綠燈，等待 15 秒後前進並降落"""
         try:
+            self.start_time = time()
             print('Warning -- Yolo strategy 2')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -209,6 +215,7 @@ class Controller():
     def mission_yolo_3(self):
         """走到紅綠燈，等待燈號變色後前進並降落"""
         try:
+            self.start_time = time()
             print('Warning -- Yolo strategy 3')
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
@@ -351,8 +358,9 @@ class Controller():
                 self.feedback_queue.put('7===Dropped===')
             self.feedback_queue.put(
                 '8===Loop Time: {}==='.format(int(time()-now)))
+            self.global_time = time() - self.start_time()
             self.feedback_queue.put(
-                '9===Global Time: {}==='.format(self.global_time))
+                '9===Global Time: {}==='.format(int(self.global_time)))
             if self._stop:
                 break
             if func_condition:
@@ -365,8 +373,6 @@ class Controller():
                 break
             func_loop()
             self.frame_finish()
-
-        self.global_time += int(time()-now)
 
     def pause(self):
         self.feedback_queue.put('1===PAUSE===')
