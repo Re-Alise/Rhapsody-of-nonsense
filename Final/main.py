@@ -61,6 +61,10 @@ if __name__ == '__main__':
         if sys.argv[1] == '3':
             yolo = 3
             print('Warning: YOLO strategy 3')
+
+        if sys.argv[1] == '4':
+            yolo = 4
+            print('Warning: Alternative start (with roll)')
     else:
         save = 1
 
@@ -91,14 +95,16 @@ if __name__ == '__main__':
                 plane.arm()
                 plane.take_off(55, 16*8)
                 # plane.take_off(100, 10*8)
-                plane.take_off(90, 10*8)
-                plane.idle(5)
+                plane.take_off(100, 10*8)
+                plane.idle(2)
                 if yolo == 1:
                     controller.mission_yolo_1()
                 elif yolo == 2:
                     controller.mission_yolo_2()
                 elif yolo == 3:
                     controller.mission_yolo_3()
+                elif yolo == 4:
+                    controller.mission_start_alternative()
                 else:
                     controller.mission_start()
 

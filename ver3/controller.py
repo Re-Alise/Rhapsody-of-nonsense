@@ -67,8 +67,8 @@ class Controller():
 
         #owoowow
         self.plane.update(1, 0, 0, 0)
-        self.loop(self.forward_experimental, self.condition_light, sec=30)
-        # self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=30)
+        # self.loop(self.forward_experimental, self.condition_light, sec=30)
+        self.loop(self.forward_no_yaw_experimental, self.condition_light, sec=30)
         self.plane.update(1, 0, 0, 0)
         self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
         self.plane.roll_pid.set_windup_guard(40)
