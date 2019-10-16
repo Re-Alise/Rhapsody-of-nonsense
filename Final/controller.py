@@ -223,6 +223,7 @@ class Controller():
             self.binarization_state = 2
             print('=' * 20 + '前進丟沙包')
             self.following(drop=True, yaw=False)
+            print('=' * 20 + '離開投放區')
             self.following(yaw=False, condition=self.condition_no_drop_color)
             self.box.drop()
             self.binarization_state = 0
