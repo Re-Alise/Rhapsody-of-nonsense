@@ -1,20 +1,24 @@
 import cv2
 import os
 import numpy as np
-from time import sleep
+from time import sleep, time
 
 # from menu import MENU
 
-useCarema = 0
+useCarema = 1
 
-IMAGE_SIZE = (240, 320)
 IMAGE_SIZE = (320, 240)
-path = "slice_video/"
-path = "./../video/"
+IMAGE_SIZE = (240, 320)
+path = "the_first/"
+
+# path = "./../video/"
 # path = "C:\\Users\\YUMI.Lin\\Desktop\\video\\"
 # fileName = "radline.avi"
+save = 0
+save_path = 'paraout/'
+
 fileName = "1570964034.avi"
-fileName = "color2.avi"
+fileName = "0.avi"
 gaussian = (13, 13)
 kernel = np.ones((3,3),np.uint8)
 adjust = 0
@@ -184,7 +188,7 @@ def normal_map(frame):
     r = frame[:,:,2]
     b = frame[:, :, 0]
     c = b-r+ normal_offset
-    _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
+    _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     # c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV)# +cv2.THRESH_OTSU)
@@ -513,7 +517,7 @@ class MENU():
         self.display = 0
         self.select = 0
         self.show_num = 6
-        self.mode = 0
+        self.mode = 1
     
     def creat_list(self, ):
         global normal_offset
@@ -700,6 +704,11 @@ if __name__ == "__main__":
             cap = cv2.VideoCapture(path+fileName)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
+        time_str = str(int(time()))
+        if save:
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(save_path + time_str + '.avi', fourcc,
+            30.0, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
         stop = 0
         pause = 0
         pause_ = 1
@@ -707,8 +716,11 @@ if __name__ == "__main__":
         while cap.isOpened():
             if stop:
                 break
+            if save:
+            out.write(frame_)
             if not pause:
-                ret, frame = cap.read()
+                ret, frame_ = cap.read()
+                frame = frame_
             if ret:
                 print(menu.mode)
                 cv2.imshow('Replay', cv2.hconcat([menu.show_menu(),menu.show()]))
@@ -756,4 +768,6 @@ if __name__ == "__main__":
                 break
     finally:
         cap.release()
+        if save:
+        out.release()
         cv2.destroyAllWindows()
