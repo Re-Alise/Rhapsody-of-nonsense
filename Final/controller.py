@@ -33,6 +33,9 @@ MASK_FORWARD = (None, 25, 0, 85)
 MASK_LINE_MIDDLE = (None, 30, 0, 0)
 MASK_LINE_BACKWARD = (None, 25, 0, -85)
 MASK_OWO = (40, None, 0, 0)
+MASK_MIDDLE = (50, None, 0, 0)
+MASK_UP = (None, 60, 0, 60)
+MASK_DOWN = (None, 60, 0, -60)
 
 MAX_MISSION_TIME = 170
 
@@ -85,6 +88,8 @@ floor_min = 100
 # MASK
 MASK_FORWARD = (None, 25, 0, 85)
 MASK_DROP = (None, 60, 0, 0)
+
+
 # ==========================================
 
 
@@ -172,7 +177,15 @@ class Controller():
             self.following(yaw=False, condition=self.condition_no_drop_color)
             self.box.drop()
             self.binarization_state = 0
-            self.loop(self.forward, self.condition_all_floor, sec=6)
+            # 走到看見終點線
+            self.loop(self.forward, self.condition_all_floor, cond2=detect_finishline, sec=30)
+            # 盲走直到看見紅色
+            self.plane.update(1, 90, 0, 0)
+            self.loop(self.pause, self.condition_has_big_red, sec=10)
+            # 繞圈直到看見目標
+            self.loop(self.around, self.condition_has_target_color, sec=10)
+            # 飛過去
+            self.loop(self.stable, sec=7)
 
             # self.following(ignore_light=True)
         except:
@@ -316,6 +329,8 @@ class Controller():
             if self.get_weight(floor_bin_forward) < floor_min:
                 self.need_pause = True
                 return 1
+        
+        # if self.fin
 
         self.need_pause = False
         return 0
@@ -348,6 +363,20 @@ class Controller():
             blue_binarized = self.bin_and(saturation_binarized, blue_hue_binarized)
             if self.get_weight(blue_binarized) > drop_min:
                 return 1
+        return 0
+
+    def condition_has_big_red(self):
+        s_ = self.get_saturation_binarized()
+        red_ = self.get_hue_binarized(hue=hue_red)
+        red = self.bin_and(s_, red_)
+        if self._find_center(frame=red, mask=MASK_ALL, data='w')>20000:
+            return 1
+        return 0
+
+    def condition_has_target_color(self):
+        target = self.target_map()
+        if self._find_center(frame=target, mask=MASK_ALL, data='w')>8000:
+            return 1
         return 0
 
     def following(self, drop=False, condition=None, yaw=True):
@@ -403,7 +432,7 @@ class Controller():
 
         return False
 
-    def loop(self, func_loop, func_condition=None, sec=10):
+    def loop(self, func_loop, func_condition=None, cond2=None, sec=10):
         condition_count = 0
         now = time()
         self.need_pause = False
@@ -424,8 +453,13 @@ class Controller():
             if func_condition:
                 if func_condition():
                     condition_count += 1
+                elif cond2:
+                    if cond2():
+                        condition_count += 1
                 else:
                     condition_count = 0
+                
+
 
             if condition_count > 10:
                 break
@@ -503,7 +537,6 @@ class Controller():
         #     ret, pitch_overrided, pitch_fector, roll, yaw))
         self.plane.update(ret, pitch_overrided, roll, 0)
 
-
     def _along_experimental(self, color='k'):
         front = self._find_center(mask=MASK_FORWARD, data='x')
         front_weight = self._find_center(mask=MASK_FORWARD, data='w')
@@ -541,6 +574,28 @@ class Controller():
         roll = self._find_center(frame=a, mask=MASK_ALL, data='x')
         self.plane.update(1, pitch, roll, 0)
 
+    def stable_target(self):
+        target = self.target_map()
+        self.feedback_queue.put('1===Stable {}==='.format(self.color))
+        pitch = self._find_center(frame=target, mask=MASK_ALL, data='y')
+        roll = self._find_center(frame=target, mask=MASK_ALL, data='x')
+        self.plane.update(1, pitch, roll, 0)
+
+    def around(self, bined):
+        self.feedback_queue.put('1===around Red===')
+        pitch = 65
+        roll = self._find_center(frame=bined, mask=MASK_MIDDLE, data='x')
+        yaw1 = self._find_center(frame=bined, mask=MASK_UP, data='x')
+        yaw2 = self._find_center(frame=bined, mask=MASK_DOWN, data='x')
+        self.plane.update(1, pitch, roll, yaw1-yaw2)
+
+    def detect_finishline(self):
+        red = self.get_hue_binarized(hue=hue_red)
+        nh = cv2.countNonZero(red)
+        if nh>has_finishline_min:
+            return 1
+        else:
+            return 0
 
     def detect_light(self):
         """顏色轉換時EX 紅-> 綠有機會誤判藍 之類的，須加上一部份延遲做防誤判。
@@ -719,6 +774,22 @@ class Controller():
         # frame = cv2.GaussianBlur(frame, gaussian, 0)
         s_ = self.get_saturation_binarized()
         return s_
+
+    def red_map(self):
+        s_ = self.get_saturation_binarized()
+        red_ = self.get_hue_binarized(hue = hue_red)
+        red = self.bin_and(s_, red_)
+        return red
+    
+    def target_map(self):
+        s_ = self.get_saturation_binarized()
+        if self.color == 3:
+            hue = hue_blue
+        else:
+            hue = hue_green
+        target_ = self.get_hue_binarized(hue=hue)
+        target = self.bin_and(s_, target_)
+        return target
 
     def get_hue_binarized(self, hue=180, invert=0):
         hsv = cv2.cvtColor(self.frame_new, cv2.COLOR_BGR2HSV)
