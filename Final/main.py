@@ -3,7 +3,7 @@ from threading import Thread
 from queue import Queue
 from plane import Plane
 from sonic import Sonic
-from box import Box, TBox
+from box import Box
 from tfmini import TFMiniLidar
 from data import PIN, DC, MASK
 from camera import Record
