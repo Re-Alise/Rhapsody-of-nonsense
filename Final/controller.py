@@ -9,6 +9,13 @@ from box import Box
 import numpy as np
 import cv2
 
+
+# ==========Ultra Important Things==========
+hue_floor = 24
+light_threshold = 100
+na_offset = 220
+nb_offset = 200
+
 # ==========================================
 delta_c = 0.03
 C_START = 3.5
@@ -48,11 +55,6 @@ kernel = np.ones((3,3),np.uint8)
 # target_color = 0
 # step = -1
 
-#
-hue_floor = 24
-light_threshold = 100
-na_offset = 220
-nb_offset = 200
 
 # PARAMETER
 normal_offset = 180
@@ -170,7 +172,7 @@ class Controller():
             self.following(yaw=False, condition=self.condition_no_drop_color)
             self.box.drop()
             self.binarization_state = 0
-            self.loop(self.forward, self.condition_all_floor, sec=30)
+            self.loop(self.forward, self.condition_all_floor, sec=6)
 
             # self.following(ignore_light=True)
         except:
