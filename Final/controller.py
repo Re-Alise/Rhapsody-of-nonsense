@@ -506,10 +506,10 @@ class Controller():
                 return 1
             elif ba>30:
                 print('B', na, nb)
-                return 2
+                return 3
             else:
                 print('G', na, nb)
-                return 3
+                return 2
         else:
             print('X', na, nb)
             return 0
@@ -524,7 +524,6 @@ class Controller():
         frame = cv2.GaussianBlur(frame, (13, 13), 0)
         self.frame_new = frame
 
-        print('binarization state:', self.binarization_state)
         if self.binarization_state == 0:
             binarized_frame = self.normal_map(frame)
         elif self.binarization_state == 1:
