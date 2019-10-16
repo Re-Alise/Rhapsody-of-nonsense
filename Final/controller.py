@@ -133,14 +133,14 @@ class Controller():
             # 起飛、機身已穩定五秒裝，重設各方向移動
             print('=' * 20 + '前往紅綠燈')
             self.binarization_state = 0
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             # 往前盲走，直到看到紅綠燈
             self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, self.condition_light, sec=10)
             # 重設各方向移動，並設定紅綠燈用 PID 值
             print('=' * 20 + '定在紅綠燈')
             self.binarization_state = 1
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
             self.plane.roll_pid.set_windup_guard(40)
             self.loop(self.stable_red, self.condition_not_red, sec=30)
@@ -178,7 +178,7 @@ class Controller():
         except:
             print('=' * 20 + 'Forced stopped')
 
-    def mission_star_alternative(self):
+    def mission_start_alternative(self):
         try:
             self.start_time = time()
             # normal:0, light:1, color:2
@@ -187,14 +187,14 @@ class Controller():
             # 起飛、機身已穩定五秒裝，重設各方向移動
             print('=' * 20 + '前往紅綠燈')
             self.binarization_state = 0
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             # 往前盲走，直到看到紅綠燈
-            self.plane.update(1, 90, 0, 0)
-            self.loop(self.pause, self.condition_light, sec=10)
+            # self.plane.update(1, 90, 0, 0)
+            self.loop(self.forward_no_yaw, self.condition_light, sec=10)
             # 重設各方向移動，並設定紅綠燈用 PID 值
             print('=' * 20 + '定在紅綠燈')
             self.binarization_state = 1
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             self.plane.pitch_pid.set_pid(kp=0, ki=0.35, kd=0)
             self.plane.roll_pid.set_windup_guard(40)
             self.loop(self.stable_red, self.condition_not_red, sec=30)
@@ -241,7 +241,7 @@ class Controller():
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
             # 起飛、機身已穩定五秒裝，重設各方向移動
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             # 往前盲走 10 秒，直接降落
             self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, sec=10)
@@ -256,12 +256,12 @@ class Controller():
             # self.halt()
             # all mission fun return "ret, pitch, roll, yaw"
             # 起飛、機身已穩定五秒裝，重設各方向移動
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             # 往前盲走 2 秒，進入紅綠燈區
             self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, sec=2)
             # 停止 15 秒，等待切換燈號
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             self.loop(self.pause, sec=15)
             # 往前盲走 3 秒，直接降落
             self.plane.update(1, 90, 0, 0)
@@ -279,7 +279,7 @@ class Controller():
             # 起飛、機身已穩定五秒裝，重設各方向移動
             print('=' * 20 + '前往紅綠燈')
             self.binarization_state = 0
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             # 往前盲走，直到看到紅綠燈
             self.plane.update(1, 90, 0, 0)
             self.loop(self.pause, self.condition_light, sec=10)
@@ -289,7 +289,7 @@ class Controller():
             self.loop(self.pause, sec=1)
 
             # 等待紅綠燈變色
-            self.plane.update(1, 0, 0, 0)
+            # self.plane.update(1, 0, 0, 0)
             self.binarization_state = 1
             self.loop(self.pause, self.condition_not_red, sec=30)
             # self.loop(self.pause, self.condition_not_red, sec=15)
@@ -417,7 +417,7 @@ class Controller():
                 self.feedback_queue.put('7===Dropped===')
             self.feedback_queue.put(
                 '8===Loop Time: {}==='.format(int(time()-now)))
-            self.global_time = time() - self.start_time()
+            self.global_time = time() - self.start_time
             self.feedback_queue.put(
                 '9===Global Time: {}==='.format(int(self.global_time)))
             if self._stop:
@@ -432,6 +432,7 @@ class Controller():
                 break
             func_loop()
             self.frame_finish()
+
 
     def pause(self):
         self.feedback_queue.put('1===PAUSE===')
