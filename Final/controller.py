@@ -53,15 +53,15 @@ normal_offset = 180
 normal_threshold = 100
 gray_threshold = 100
 na_offset = 220
-nb_offset = 220
+nb_offset = 200
 light_threshold = 100
 saturation_threshold = 145
 hue_range = 20
 hue_threshold = 2*hue_range
 hue_red = 180 # use overfloat value don't use value like 1, 0, 5 etc..
-hue_green = 54
-hue_blue = 100
-hue_floor = 20
+hue_green = 90
+hue_blue = 120
+hue_floor = 24
 
 default_drop_color = 3
 default_land_color = 2
@@ -163,6 +163,7 @@ class Controller():
             self.binarization_state = 2
             print('=' * 20 + '前進丟沙包')
             self.following(drop=True, yaw=False)
+            self.following(yaw=False, condition=self.condition_no_drop_color)
             self.box.drop()
             self.binarization_state = 0
             self.loop(self.forward, self.condition_all_floor, sec=30)
@@ -313,6 +314,12 @@ class Controller():
             self.plane.update(1, -45, 0, 0)
             self.loop(self.pause, sec=3)
 
+    def condition_no_drop_color(self):
+        if not self.condition_has_color():
+            return True
+
+        return False
+
     def condition_forward_color(self):
         if self.condition_has_color() and self.condition_has_drop_color():
             self.need_drop = True
@@ -336,6 +343,7 @@ class Controller():
         now = time()
         self.need_pause = False
         while time()-now < sec:
+            self._get_frame()
             if self.global_time > MAX_MISSION_TIME:
                 print('=========== Time Out ===========')
                 break
@@ -347,7 +355,6 @@ class Controller():
                 '9===Global Time: {}==='.format(self.global_time))
             if self._stop:
                 break
-            self._get_frame()
             if func_condition:
                 if func_condition():
                     condition_count += 1
@@ -504,7 +511,7 @@ class Controller():
                 print('G', na, nb)
                 return 3
         else:
-            # print('X', na, nb)
+            print('X', na, nb)
             return 0
 
 
@@ -631,8 +638,8 @@ class Controller():
         # _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY)#+cv2.THRESH_OTSU)
         _, c_ = cv2.threshold(c, normal_threshold, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         # c_ = cv2.cvtColor(c_, cv2.COLOR_GRAY2BGR)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
+        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # _, gray_ = cv2.threshold(gray, gray_threshold, 255, cv2.THRESH_BINARY_INV +cv2.THRESH_OTSU)
         # binarized_frame = np.bitwise_and(c_, gray_)
         binarized_frame = c_
         return binarized_frame
