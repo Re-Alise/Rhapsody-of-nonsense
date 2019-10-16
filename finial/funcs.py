@@ -1,18 +1,21 @@
 import cv2
 import os
 import numpy as np
-from time import sleep
+from time import sleep, time
 
 # from menu import MENU
 
-useCarema = 0
+useCarema = 1
 
-IMAGE_SIZE = (240, 320)
 IMAGE_SIZE = (320, 240)
+IMAGE_SIZE = (240, 320)
 path = "slice_video/"
+
 path = "./../video/"
 # path = "C:\\Users\\YUMI.Lin\\Desktop\\video\\"
 # fileName = "radline.avi"
+save_path = 'paraout/'
+
 fileName = "1570964034.avi"
 fileName = "color2.avi"
 gaussian = (13, 13)
@@ -700,6 +703,10 @@ if __name__ == "__main__":
             cap = cv2.VideoCapture(path+fileName)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_SIZE[0])
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_SIZE[1])
+        time_str = str(int(time()))
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(save_path + time_str + '.avi', fourcc,
+            30.0, (IMAGE_SIZE[1], IMAGE_SIZE[0]))
         stop = 0
         pause = 0
         pause_ = 1
@@ -707,8 +714,10 @@ if __name__ == "__main__":
         while cap.isOpened():
             if stop:
                 break
+            ret, frame_ = cap.read()
+            out.write(frame_)
             if not pause:
-                ret, frame = cap.read()
+                frame = frame_
             if ret:
                 print(menu.mode)
                 cv2.imshow('Replay', cv2.hconcat([menu.show_menu(),menu.show()]))
@@ -756,4 +765,5 @@ if __name__ == "__main__":
                 break
     finally:
         cap.release()
+        out.release()
         cv2.destroyAllWindows()
